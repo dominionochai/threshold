@@ -1,0 +1,658 @@
+/* ───────────────────────────────────────────────────────────────
+   CivicMesh — Global Styles & Animations
+   assets/index.css — imported via `cl import` in app.jac
+   ─────────────────────────────────────────────────────────────── */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,229,0,0.3); }
+
+/* ── Input focus ── */
+input::placeholder { color: rgba(255,255,255,0.2); }
+input:focus {
+  border-color: rgba(255,229,0,0.5) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(255,229,0,0.08) !important;
+}
+
+/* ──────────────────────────────────────────────────────
+   AURORA BACKGROUND
+   ────────────────────────────────────────────────────── */
+
+.aurora-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0;
+  will-change: transform, opacity;
+  pointer-events: none;
+  z-index: 0;
+  animation: auroraFloat 18s ease-in-out infinite alternate;
+}
+
+.aurora-blob-1 {
+  width: 55vw;
+  height: 55vw;
+  top: -20%;
+  left: -15%;
+  background: radial-gradient(circle, rgba(255,229,0,0.18) 0%, transparent 70%);
+  animation-duration: 20s;
+  animation-delay: 0s;
+  opacity: 0.6;
+}
+
+.aurora-blob-2 {
+  width: 40vw;
+  height: 40vw;
+  bottom: -15%;
+  right: -10%;
+  background: radial-gradient(circle, rgba(255,200,50,0.12) 0%, transparent 65%);
+  animation-duration: 25s;
+  animation-delay: -8s;
+  opacity: 0.5;
+}
+
+.aurora-blob-3 {
+  width: 30vw;
+  height: 30vw;
+  top: 30%;
+  left: 55%;
+  background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+  animation-duration: 22s;
+  animation-delay: -14s;
+  opacity: 0.4;
+}
+
+@keyframes auroraFloat {
+  0%   { transform: scale(1)    translate(0px,    0px);    }
+  25%  { transform: scale(1.08) translate(40px,  -30px);   }
+  50%  { transform: scale(0.95) translate(-20px,  50px);   }
+  75%  { transform: scale(1.05) translate(30px,   20px);   }
+  100% { transform: scale(1)    translate(-10px, -40px);   }
+}
+
+/* ──────────────────────────────────────────────────────
+   STREAMING REVEAL — token fade-in (replaces typewriter)
+   ────────────────────────────────────────────────────── */
+/* Old behaviour clipped the bubble text from left-to-right (steps(30,end))
+   which created visible "punching" at every step and shifted line wraps
+   mid-animation. Linear's chat ships a token-fade approach instead: the
+   whole bubble fades + lifts in once, settling to its final layout. No
+   reflow, no caret artifacts, reads more like the message arrived already
+   "written" rather than typed-on-screen. We keep the .msg-typewriter
+   class name so call sites don't need updating. */
+
+.msg-typewriter {
+  animation: msgFadeReveal 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@keyframes msgFadeReveal {
+  from { opacity: 0; transform: translateY(4px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0);   }
+}
+
+/* reveal-done is no longer needed but kept as a no-op so any HMR-cached
+   markup that still adds the class won't break layout. */
+.msg-typewriter.reveal-done { animation: none; opacity: 1; transform: none; }
+
+/* ──────────────────────────────────────────────────────
+   MESSAGE ENTRANCE STAGGER
+   ────────────────────────────────────────────────────── */
+
+.msg-enter {
+  animation: msgSlideIn 0.3s ease forwards;
+  opacity: 0;
+}
+
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ──────────────────────────────────────────────────────
+   WALKER PULSE ANIMATIONS
+   ────────────────────────────────────────────────────── */
+
+.pulse-dot {
+  animation: pulseDot 1.4s ease infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+
+.pulse-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255,229,0,0.35);
+  animation: ringExpand 1.4s ease-out infinite;
+}
+
+@keyframes ringExpand {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+
+/* ──────────────────────────────────────────────────────
+   CARD ENTRANCE
+   ────────────────────────────────────────────────────── */
+
+.card-enter {
+  animation: cardSlideIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 0;
+}
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ──────────────────────────────────────────────────────
+   3D CARD TILT — ActionPlan step cards
+   ────────────────────────────────────────────────────── */
+
+.card-3d {
+  perspective: 800px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s cubic-bezier(0.25,0.8,0.25,1),
+              box-shadow 0.3s cubic-bezier(0.25,0.8,0.25,1);
+  cursor: default;
+}
+
+.card-3d:hover {
+  transform: perspective(800px) rotateX(3deg) rotateY(-2deg) translateZ(6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4),
+              0 0 20px rgba(255,229,0,0.06);
+}
+
+.card-3d:hover .card-3d-inner {
+  transform: translateZ(8px);
+  transition: transform 0.3s ease;
+}
+
+.card-3d.status-approved:hover {
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4),
+              0 0 24px rgba(0,255,136,0.12);
+}
+
+/* ──────────────────────────────────────────────────────
+   GRAPH NODE SHIMMER
+   ────────────────────────────────────────────────────── */
+
+.node-shimmer {
+  animation: nodeShimmer 0.6s ease forwards;
+}
+
+@keyframes nodeShimmer {
+  0%   { filter: brightness(1);   }
+  40%  { filter: brightness(1.8); }
+  100% { filter: brightness(1);   }
+}
+
+@keyframes nodeGlow {
+  from { opacity: 0.2; r: 16; }
+  to   { opacity: 0.7; r: 22; }
+}
+
+/* ──────────────────────────────────────────────────────
+   PROGRESS BAR SPRING
+   ────────────────────────────────────────────────────── */
+
+.progress-spring {
+  transition: width 0.7s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ──────────────────────────────────────────────────────
+   STAT POP-IN
+   ────────────────────────────────────────────────────── */
+
+.stat-enter {
+  animation: statPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  opacity: 0;
+}
+
+.stat-enter:nth-child(1) { animation-delay: 0.05s; }
+.stat-enter:nth-child(2) { animation-delay: 0.12s; }
+.stat-enter:nth-child(3) { animation-delay: 0.19s; }
+.stat-enter:nth-child(4) { animation-delay: 0.26s; }
+
+@keyframes statPop {
+  from { opacity: 0; transform: translateY(6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* ──────────────────────────────────────────────────────
+   SESSION BANNER SLIDE DOWN
+   ────────────────────────────────────────────────────── */
+
+.banner-slide {
+  animation: bannerSlideDown 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity: 0;
+}
+
+@keyframes bannerSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+/* ──────────────────────────────────────────────────────
+   QUIRKY WIDGETS
+   ────────────────────────────────────────────────────── */
+
+.badge-glow {
+  animation: badgeGlow 2s ease infinite alternate;
+}
+
+@keyframes badgeGlow {
+  from { box-shadow: 0 0 6px  rgba(255,229,0,0.2); }
+  to   { box-shadow: 0 0 16px rgba(255,229,0,0.5); }
+}
+
+.step-done {
+  animation: stepBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+@keyframes stepBounce {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.04); }
+  100% { transform: scale(1);    }
+}
+
+.status-dot-pending  { animation: pendingPulse 2s ease infinite; }
+.status-dot-approved { animation: none; }
+.status-dot-applied  { animation: none; }
+.status-dot-denied   { animation: none; opacity: 0.5; }
+
+@keyframes pendingPulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(255,179,68,0.4); }
+  50%      { opacity: 0.7; box-shadow: 0 0 0 5px rgba(255,179,68,0); }
+}
+
+.walker-active-dot {
+  animation: walkerActiveDot 1.2s ease infinite;
+}
+
+@keyframes walkerActiveDot {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%      { opacity: 0.5; transform: scale(0.7); }
+}
+
+.tele-bar-fill {
+  animation: teleBarGrow 1s cubic-bezier(0.25,0.8,0.25,1) forwards;
+  transform-origin: left;
+}
+
+@keyframes teleBarGrow {
+  from { width: 0%; }
+}
+
+/* ──────────────────────────────────────────────────────
+   TYPING INDICATOR (3 DOTS)
+   ────────────────────────────────────────────────────── */
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0);    }
+  30%           { transform: translateY(-5px); }
+}
+
+/* ──────────────────────────────────────────────────────
+   GRAPH BEAM SWEEP — Magic UI style animated SVG edges
+   The dashed line slides via stroke-dashoffset so the
+   "beam" reads as a wave traveling along the visited edge.
+   ────────────────────────────────────────────────────── */
+
+.lp-beam-sweep {
+  animation: lpBeamSweep 1.5s linear infinite;
+}
+
+@keyframes lpBeamSweep {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0;   }
+}
+
+/* ──────────────────────────────────────────────────────
+   REPLAY BUTTON SPIN
+   ────────────────────────────────────────────────────── */
+
+.replay-spinning {
+  display: inline-block;
+  animation: replaySpin 1s linear infinite;
+}
+
+@keyframes replaySpin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* ──────────────────────────────────────────────────────
+   REDUCED MOTION OVERRIDE
+   ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .card-3d:hover { transform: none !important; }
+}
+
+/* ──────────────────────────────────────────────────────
+   LANDING — Mesh background, glass cards, 3D tilt
+   ────────────────────────────────────────────────────── */
+
+.lp-root {
+  --lp-yellow: #FFE500;
+  --lp-blue:   #4488FF;
+  --lp-green:  #00FF88;
+  --lp-pink:   #FF88AA;
+  --lp-orange: #FFB344;
+}
+
+/* Animated mesh gradient living behind the hero. Six color stops floating
+   at different durations/positions create a slow, organic shimmer the
+   user reads as "alive" without burning a Spline scene's 2MB JS budget. */
+/* Replaces the previous rainbow conic-gradient mesh. 2026 research (Linear,
+   Arc, Vercel) shipped duotone washes with grain instead — rainbow gradient
+   AI heroes started reading as "ChatGPT wrapper" tells. We keep ONE warm
+   spot (off-center) plus one cool counterpoint, both drifting slowly. The
+   grain layer on top breaks any visible banding on OLED displays. */
+.lp-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 22% 20%, rgba(255,229,0,0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 50% at 78% 80%, rgba(60,40,90,0.45) 0%, transparent 70%),
+    linear-gradient(180deg, #07070a 0%, #08060c 45%, #060509 100%);
+  opacity: 1;
+  animation: lpMeshDrift 32s ease-in-out infinite alternate;
+}
+
+@keyframes lpMeshDrift {
+  0%   { background-position: 0%   50%, 100% 50%, 0 0; }
+  100% { background-position: 6%   54%,  94% 46%, 0 0; }
+}
+
+/* Subtle noise texture that lives above the mesh — kills the banding that
+   pure radial gradients produce on OLED displays. */
+.lp-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='3'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* Grid overlay that fades out toward the bottom — anchors the page to a
+   spatial coordinate system without screaming "blueprint template". */
+.lp-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%);
+}
+
+/* Single glass surface primitive. Everywhere we want frosted glass we add
+   this class — keeps tokens consistent: same blur, same border, same alpha. */
+.lp-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.08),
+    0 12px 32px -16px rgba(0,0,0,0.6);
+}
+
+/* Heavier glass for the hero focus card — more depth, more glow. */
+.lp-glass-strong {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.025) 100%);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.1),
+    0 24px 64px -24px rgba(0,0,0,0.75),
+    0 0 0 1px rgba(255,255,255,0.03);
+}
+
+/* The headline gets a horizontal gradient mask so the "CivicMesh finds it."
+   accent doesn't read flat — it shimmers across yellow→orange→pink. */
+.lp-gradient-text {
+  background: linear-gradient(92deg, #FFE500 0%, #FFB344 45%, #FF88AA 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: lpGradientShift 8s ease-in-out infinite alternate;
+}
+
+@keyframes lpGradientShift {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* CTA button — multi-layer shadow + animated sheen so it doesn't look
+   like a flat tab. The sheen sweeps once on entry then lives only on
+   hover so it doesn't become a distraction. */
+.lp-cta {
+  position: relative;
+  overflow: hidden;
+  padding: 17px 38px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  background: linear-gradient(180deg, #FFE500 0%, #FFC700 100%);
+  color: #0A0A0A;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.5) inset,
+    0 -1px 0 rgba(0,0,0,0.15) inset,
+    0 14px 32px -10px rgba(255,229,0,0.55),
+    0 4px 10px -4px rgba(255,229,0,0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.lp-cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.7), transparent);
+  transition: left 0.7s ease;
+}
+.lp-cta:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 -1px 0 rgba(0,0,0,0.2) inset,
+    0 22px 40px -10px rgba(255,229,0,0.7),
+    0 6px 14px -4px rgba(255,229,0,0.45);
+}
+.lp-cta:hover::after { left: 130%; }
+.lp-cta:active { transform: translateY(0); }
+
+/* The walker pipeline blocks tilt slightly when at rest, then snap level
+   on hover and rise. Looks like a stacked deck of cards the user can fan
+   through. The CSS variable --tilt is set inline per-card. */
+.lp-walker-card {
+  position: relative;
+  transform: perspective(900px) rotateY(var(--tilt, 0deg)) rotateX(2deg) translateZ(0);
+  transition: transform 0.35s cubic-bezier(.2,.7,.3,1), box-shadow 0.35s ease, border-color 0.35s ease;
+  will-change: transform;
+}
+.lp-walker-card:hover {
+  transform: perspective(900px) rotateY(0deg) rotateX(0deg) translateY(-6px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.12),
+    0 24px 48px -12px rgba(0,0,0,0.55);
+}
+
+/* Subtle drift on the hero preview card. Keeps the surface alive without
+   the user noticing the motion until they sit on the page for a moment. */
+.lp-float {
+  animation: lpFloat 7s ease-in-out infinite alternate;
+}
+@keyframes lpFloat {
+  0%   { transform: translateY(0)    rotate(0deg);   }
+  100% { transform: translateY(-8px) rotate(-0.4deg); }
+}
+
+/* Floating orb — sits behind feature cards as a colored glow. The blur
+   gives it depth that flat fills can't fake. */
+.lp-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(45px);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Status pulse for the live indicator in the nav and the hero preview. */
+.lp-pulse-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lp-green);
+  box-shadow: 0 0 8px var(--lp-green);
+}
+.lp-pulse-dot::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--lp-green);
+  opacity: 0.4;
+  animation: lpPulseRing 1.6s ease-out infinite;
+}
+@keyframes lpPulseRing {
+  0%   { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0;   }
+}
+
+/* Persona chip with hover lift. */
+.lp-persona {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.lp-persona:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -8px rgba(0,0,0,0.6);
+}
+
+/* Bento stat tile — slight 3D tilt on hover, glow ring follows accent. */
+.lp-stat {
+  transition: transform 0.3s cubic-bezier(.2,.7,.3,1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.lp-stat:hover {
+  transform: translateY(-4px) rotateX(2deg);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.12),
+    0 28px 48px -16px rgba(0,0,0,0.55);
+}
+
+/* Animated dashed connector under the walker cards — gives the row a
+   "pipeline" reading without needing extra SVG markup. */
+.lp-pipeline-rail {
+  height: 1px;
+  width: 100%;
+  background: repeating-linear-gradient(90deg,
+    rgba(255,229,0,0.5) 0,
+    rgba(255,229,0,0.5) 6px,
+    transparent 6px,
+    transparent 14px
+  );
+  background-size: 28px 1px;
+  animation: lpRailScroll 4s linear infinite;
+}
+@keyframes lpRailScroll {
+  from { background-position: 0   0; }
+  to   { background-position: 28px 0; }
+}
+
+/* Reveal-on-load: every direct child of .lp-reveal staggers in. Uses
+   :nth-child to delay each successive element. */
+.lp-reveal > * {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: lpRevealIn 0.7s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.lp-reveal > *:nth-child(1) { animation-delay: 0.05s; }
+.lp-reveal > *:nth-child(2) { animation-delay: 0.15s; }
+.lp-reveal > *:nth-child(3) { animation-delay: 0.25s; }
+.lp-reveal > *:nth-child(4) { animation-delay: 0.35s; }
+.lp-reveal > *:nth-child(5) { animation-delay: 0.45s; }
+.lp-reveal > *:nth-child(6) { animation-delay: 0.55s; }
+@keyframes lpRevealIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ──────────────────────────────────────────────────────
+   LANDING — Auto-typing chat preview
+   ────────────────────────────────────────────────────── */
+
+/* Each preview bubble fades + slides in as it becomes the next preview_step.
+   The hero card has a min-height so layout doesn't shift while bubbles
+   accumulate. */
+.lp-bubble-fade-in {
+  animation: lpBubbleFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes lpBubbleFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* Typing-dot indicator shown between bubbles while the next walker is "thinking". */
+.lp-typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,229,0,0.7);
+  display: inline-block;
+  animation: lpTypingPulse 1.2s ease-in-out infinite;
+}
+.lp-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.lp-typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes lpTypingPulse {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+  40%           { opacity: 1;    transform: scale(1.1); }
+}
