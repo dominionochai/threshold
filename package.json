@@ -13,10 +13,11 @@
   },
   "dependencies": {
     "@agent-native/core": "^0.225.0",
+    "@electric-sql/pglite": "^0.5.15",
+    "ai": "^6.0.168",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router": "^8.1.0",
-    "ai": "^6.0.168",
     "zod": "^4.3.6"
   },
   "devDependencies": {

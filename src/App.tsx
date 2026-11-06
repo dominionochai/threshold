@@ -1,41 +1,100 @@
-import React, { useState } from "react";
-import { getCaseState, logEventAction, updateEvidenceAction, updateStepStatusAction } from "./actions/case-actions";
+import React, { useEffect, useState } from "react";
+import { getCaseState, createCaseAction, logEventAction, updateEvidenceAction, updateStepStatusAction } from "./actions/case-actions";
 import { findClaimGaps } from "./engine/claim";
 import { resources } from "./data/resources.seed";
 import { tokens } from "./design-tokens";
+import type { CaseRecord } from "./engine/types";
 
 export default function App() {
-  const [caseData, setCaseData] = useState(getCaseState());
+  const [caseData, setCaseData] = useState<CaseRecord | null>(null);
+  const [loading, setLoading] = useState(true);
   const [newEventDesc, setNewEventDesc] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [borough, setBorough] = useState("Brooklyn");
 
-  const gaps = findClaimGaps(caseData.evidence);
-
-  const handleLogEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEventDesc.trim()) return;
-    setLoading(true);
+  const loadState = async () => {
     try {
-      const res = await logEventAction.run({ type: "UI_MANUAL_LOG", description: newEventDesc }, { caller: "frontend" });
-      setCaseData({ ...res.case });
-      setNewEventDesc("");
-    } catch (err) {
-      console.error(err);
+      const state = await getCaseState();
+      setCaseData(state);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleEvidence = async (req: keyof typeof caseData.evidence) => {
-    const current = caseData.evidence[req] === true;
-    const res = await updateEvidenceAction.run({ requirement: req, verified: !current }, { caller: "frontend" });
-    setCaseData({ ...res.case });
+  useEffect(() => {
+    loadState();
+  }, []);
+
+  const handleCreateCase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await createCaseAction.run({ location: borough, childrenAges: [7, 11], language: "English" }, { caller: "frontend" });
+    await loadState();
+  };
+
+  const handleLogEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventDesc.trim()) return;
+    const res = await logEventAction.run({ type: "UI_MANUAL_LOG", description: newEventDesc }, { caller: "frontend" });
+    setCaseData(res.case);
+    setNewEventDesc("");
+  };
+
+  const handleToggleEvidence = async (req: string) => {
+    const verified = caseData?.evidence[req as keyof typeof caseData.evidence] === true;
+    const res = await updateEvidenceAction.run({ requirement: req as any, verified: !verified }, { caller: "frontend" });
+    setCaseData(res.case);
   };
 
   const handleStepStatus = async (stepId: string, status: "waiting" | "calling" | "confirmed" | "declined") => {
     const res = await updateStepStatusAction.run({ stepId, status }, { caller: "frontend" });
-    setCaseData({ ...res.case });
+    setCaseData(res.case);
   };
+
+  if (loading) {
+    return <div className="min-h-screen bg-zinc-950 text-zinc-400 flex items-center justify-center font-mono text-sm">Loading case record storage...</div>;
+  }
+
+  if (!caseData) {
+    return (
+      <div className={`min-h-screen ${tokens.background} ${tokens.textPrimary} p-4 sm:p-12 ${tokens.font} flex items-center justify-center`}>
+        <div className={`max-w-md w-full p-6 rounded-2xl ${tokens.surface} space-y-6`}>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">THRESHOLD</h1>
+            <p className={`text-xs ${tokens.textSecondary} mt-1`}>New York City · ACCESS HRA & Tonight's Crisis Record</p>
+          </div>
+          <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400 space-y-2">
+            <p className="font-semibold text-zinc-300">Honest Empty State</p>
+            <p>No active case record exists in storage. Seed nothing fake. Initialize a household case below to begin tracking tonight's crisis and SNAP claim.</p>
+          </div>
+          <form onSubmit={handleCreateCase} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Select NYC Borough</label>
+              <select
+                value={borough}
+                onChange={(e) => setBorough(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500"
+              >
+                <option value="Manhattan">Manhattan</option>
+                <option value="Brooklyn">Brooklyn</option>
+                <option value="Queens">Queens</option>
+                <option value="Bronx">Bronx</option>
+                <option value="Staten Island">Staten Island</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-amber-500 text-zinc-950 font-semibold text-sm rounded-lg hover:bg-amber-400 transition"
+            >
+              Initialize Household Case
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  const gaps = findClaimGaps(caseData.evidence);
 
   return (
     <div className={`min-h-screen ${tokens.background} ${tokens.textPrimary} p-4 sm:p-8 ${tokens.font}`}>
@@ -56,12 +115,12 @@ export default function App() {
           </div>
         </header>
 
-        {/* Household & Borough Section */}
+        {/* Household Section */}
         <section className={`p-5 rounded-xl ${tokens.surface}`}>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Household Profile</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="block text-zinc-500 text-xs">Borough / Location</span>
+              <span className="block text-zinc-500 text-xs">Borough</span>
               <span className="font-medium">{caseData.location}</span>
             </div>
             <div>
@@ -69,12 +128,12 @@ export default function App() {
               <span className="font-medium">{caseData.children.join(", ")} years</span>
             </div>
             <div>
-              <span className="block text-zinc-500 text-xs">Primary Language</span>
+              <span className="block text-zinc-500 text-xs">Language</span>
               <span className="font-medium">{caseData.language}</span>
             </div>
             <div>
-              <span className="block text-zinc-500 text-xs">Verification Status</span>
-              <span className="font-medium text-amber-400">Unverified Prototype Data</span>
+              <span className="block text-zinc-500 text-xs">Storage Backend</span>
+              <span className="font-medium text-emerald-400">Agent-Native Database</span>
             </div>
           </div>
         </section>
@@ -137,7 +196,7 @@ export default function App() {
                 <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-zinc-950/40 border border-zinc-800/50 text-sm">
                   <span className={verified ? "line-through text-zinc-500" : "text-zinc-200"}>{label}</span>
                   <button
-                    onClick={() => handleToggleEvidence(key as any)}
+                    onClick={() => handleToggleEvidence(key)}
                     className={`px-3 py-1 text-xs font-medium rounded ${
                       verified ? "bg-emerald-950 text-emerald-300 border border-emerald-800" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                     }`}
@@ -164,8 +223,7 @@ export default function App() {
             />
             <button
               type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-amber-500 text-zinc-950 font-semibold text-sm rounded-lg hover:bg-amber-400 transition disabled:opacity-50"
+              className="px-4 py-2 bg-amber-500 text-zinc-950 font-semibold text-sm rounded-lg hover:bg-amber-400 transition"
             >
               Log Event
             </button>
