@@ -3,7 +3,7 @@ import { getCaseState, createCaseAction, logEventAction, updateEvidenceAction, u
 import { findClaimGaps } from "./engine/claim";
 import { resources } from "./data/resources.seed";
 import { tokens } from "./design-tokens";
-import type { CaseRecord } from "./engine/types";
+import type { CaseRecord, ClaimEvidenceKey } from "./engine/types";
 
 export default function App() {
   const [caseData, setCaseData] = useState<CaseRecord | null>(null);
@@ -44,7 +44,7 @@ export default function App() {
 
   const handleToggleEvidence = async (req: string) => {
     const verified = caseData?.evidence[req as keyof typeof caseData.evidence] === true;
-    const res = await updateEvidenceAction.run({ requirement: req as any, verified: !verified }, { caller: "frontend" });
+    const res = await updateEvidenceAction.run({ requirement: req as ClaimEvidenceKey, verified: !verified }, { caller: "frontend" });
     setCaseData(res.case);
   };
 

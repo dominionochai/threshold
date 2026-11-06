@@ -82,5 +82,4 @@ export interface CaseRecord extends Household {
   evidence: ClaimEvidence;
   steps: CaseStep[];
   events: CaseEvent[];
-  simulated: boolean;
 }

@@ -5,3 +5,5 @@ dist
 .agent-native
 .generated
 package
+data/
+tsconfig.tsbuildinfo

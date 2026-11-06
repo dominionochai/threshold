@@ -2,203 +2,111 @@ import { defineAction } from "@agent-native/core";
 import { getDbExec } from "@agent-native/core/db";
 import { z } from "zod";
 import { initDb } from "../db/schema";
-import type { CaseRecord, ClaimEvidence, CaseStep, CaseEvent } from "../engine/types";
+import { NEEDS, type CaseRecord, type ClaimEvidence } from "../engine/types";
 
-let dbInitialized = false;
+const STATUSES = ["waiting", "calling", "confirmed", "declined"] as const;
+const REQUIREMENTS = ["householdMembersId", "residenceProof", "incomeProof", "householdComposition", "deadlinesNote"] as const;
 
-async function ensureDb() {
-  if (!dbInitialized) {
-    await initDb();
-    dbInitialized = true;
-  }
+let ready: Promise<void> | undefined;
+const db = () => (ready ??= initDb()).then(getDbExec);
+
+async function householdId(): Promise<string> {
+  const { rows } = await (await db()).execute("SELECT id FROM households ORDER BY id DESC LIMIT 1");
+  if (!rows[0]) throw new Error("No active household case found.");
+  return rows[0].id;
 }
 
-interface HouseholdRow {
-  id: string;
-  children: string;
-  location: string;
-  language: string;
-  secondary_language?: string;
-}
-
-interface StepRow {
-  id: string;
-  need: string;
-  status: string;
-  resource_id?: string;
-}
-
-interface EventRow {
-  id: string;
-  timestamp: number;
-  type: string;
-  description: string;
-}
-
-interface RequirementRow {
-  requirement: string;
-  verified: number;
-}
-
-interface NeedRow {
-  need: string;
+async function appendEvent(hid: string, type: string, description: string) {
+  const event = { id: `ev-${crypto.randomUUID()}`, timestamp: Date.now(), type, description };
+  await (await db()).execute({
+    sql: "INSERT INTO events (id, household_id, timestamp, type, description) VALUES ($1,$2,$3,$4,$5)",
+    args: [event.id, hid, event.timestamp, type, description],
+  });
+  return event;
 }
 
 export async function getCaseState(): Promise<CaseRecord | null> {
-  await ensureDb();
-  const db = getDbExec();
-  const hhRes = await db.execute("SELECT * FROM households LIMIT 1;");
-  if (!hhRes.rows || hhRes.rows.length === 0) {
-    return null;
-  }
-  const hh = hhRes.rows[0] as unknown as HouseholdRow;
-  const householdId = hh.id;
-
-  const stepsRes = await db.execute(`SELECT * FROM steps WHERE household_id = '${householdId}';`);
-  const steps: CaseStep[] = (stepsRes.rows as unknown as StepRow[]).map((s) => ({
-    id: s.id,
-    need: s.need as any,
-    status: s.status as any,
-    resourceId: s.resource_id,
-  }));
-
-  const eventsRes = await db.execute(`SELECT * FROM events WHERE household_id = '${householdId}' ORDER BY timestamp DESC;`);
-  const events: CaseEvent[] = (eventsRes.rows as unknown as EventRow[]).map((e) => ({
-    id: e.id,
-    timestamp: e.timestamp,
-    type: e.type,
-    description: e.description,
-  }));
-
-  const reqsRes = await db.execute(`SELECT * FROM claim_requirements WHERE household_id = '${householdId}';`);
+  const exec = await db();
+  const { rows: [hh] } = await exec.execute("SELECT * FROM households ORDER BY id DESC LIMIT 1");
+  if (!hh) return null;
+  const byHousehold = (table: string, order = "") =>
+    exec.execute({ sql: `SELECT * FROM ${table} WHERE household_id = $1 ${order}`, args: [hh.id] }).then((r) => r.rows);
+  const [steps, events, reqs, needs] = await Promise.all([
+    byHousehold("steps"), byHousehold("events", "ORDER BY timestamp DESC"),
+    byHousehold("claim_requirements"), byHousehold("needs", "ORDER BY priority"),
+  ]);
   const evidence: ClaimEvidence = {};
-  for (const r of (reqsRes.rows as unknown as RequirementRow[])) {
-    if (r.requirement === "householdMembersId") evidence.householdMembersId = r.verified === 1;
-    if (r.requirement === "residenceProof") evidence.residenceProof = r.verified === 1;
-    if (r.requirement === "incomeProof") evidence.incomeProof = r.verified === 1;
-    if (r.requirement === "householdComposition") evidence.householdComposition = r.verified === 1;
-    if (r.requirement === "deadlinesNote") evidence.deadlinesNote = r.verified === 1;
-  }
-
-  const needsRes = await db.execute(`SELECT need FROM needs WHERE household_id = '${householdId}';`);
-  const needs = (needsRes.rows as unknown as NeedRow[]).map((n) => n.need as any);
-
+  for (const r of reqs) evidence[z.enum(REQUIREMENTS).parse(r.requirement)] = r.verified;
   return {
-    id: householdId,
-    children: JSON.parse(hh.children || "[]"),
-    needs,
+    id: hh.id,
+    children: JSON.parse(hh.children),
+    needs: needs.map((n) => z.enum(NEEDS).parse(n.need)),
     location: hh.location,
     language: hh.language,
-    secondaryLanguage: hh.secondary_language || undefined,
+    secondaryLanguage: hh.secondary_language ?? undefined,
     evidence,
-    steps,
-    events,
+    steps: steps.map((s) => ({ id: s.id, need: z.enum(NEEDS).parse(s.need), status: z.enum(STATUSES).parse(s.status), resourceId: s.resource_id ?? undefined })),
+    events: events.map((e) => ({ id: e.id, timestamp: Number(e.timestamp), type: e.type, description: e.description })),
   };
 }
 
 export const createCaseAction = defineAction({
   title: "Create Household Case",
-  description: "Initialize a new real household case record in the database.",
-  schema: z.object({
-    location: z.string(),
-    childrenAges: z.array(z.number()),
-    language: z.string(),
-  }),
+  description: "Open a household case with its first steps and a CASE_INITIALIZED event.",
+  schema: z.object({ location: z.string(), childrenAges: z.array(z.number()), language: z.string() }),
   run: async ({ location, childrenAges, language }) => {
-    await ensureDb();
-    const db = getDbExec();
-    const householdId = `case-${Date.now()}`;
-    const childrenJson = JSON.stringify(childrenAges);
-
-    await db.execute(`INSERT INTO households (id, children, location, language) VALUES ('${householdId}', '${childrenJson}', '${location}', '${language}');`);
-    await db.execute(`INSERT INTO steps (id, household_id, need, status) VALUES ('step-bed-${householdId}', '${householdId}', 'bed', 'waiting');`);
-    await db.execute(`INSERT INTO steps (id, household_id, need, status) VALUES ('step-food-${householdId}', '${householdId}', 'food', 'waiting');`);
-    
-    const evId = `ev-${Date.now()}`;
-    const ts = Date.now();
-    await db.execute(`INSERT INTO events (id, household_id, timestamp, type, description) VALUES ('${evId}', '${householdId}', ${ts}, 'CASE_INITIALIZED', 'Household case initialized for ${location}.');`);
-
-    return { success: true, householdId };
+    const exec = await db();
+    const hid = `case-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    await exec.execute({
+      sql: "INSERT INTO households (id, children, location, language) VALUES ($1,$2,$3,$4)",
+      args: [hid, JSON.stringify(childrenAges), location, language],
+    });
+    for (const [i, need] of (["bed", "food"] as const).entries()) {
+      await exec.execute({ sql: "INSERT INTO needs (id, household_id, need, priority) VALUES ($1,$2,$3,$4)", args: [`need-${need}-${hid}`, hid, need, i] });
+      await exec.execute({ sql: "INSERT INTO steps (id, household_id, need, status) VALUES ($1,$2,$3,'waiting')", args: [`step-${need}-${hid}`, hid, need] });
+    }
+    await appendEvent(hid, "CASE_INITIALIZED", `Household case initialized for ${location}.`);
+    return { success: true, householdId: hid };
   },
 });
 
 export const logEventAction = defineAction({
   title: "Log Event",
   description: "Log an event to the activity trail ledger (claim evidence trail).",
-  schema: z.object({
-    type: z.string(),
-    description: z.string(),
-  }),
+  schema: z.object({ type: z.string(), description: z.string() }),
   run: async ({ type, description }) => {
-    await ensureDb();
-    const db = getDbExec();
-    const hhRes = await db.execute("SELECT id FROM households LIMIT 1;");
-    if (!hhRes.rows || hhRes.rows.length === 0) {
-      throw new Error("No active household case found.");
-    }
-    const householdRow = hhRes.rows[0] as unknown as { id: string };
-    const householdId = householdRow.id;
-    const evId = `ev-${Date.now()}`;
-    const timestamp = Date.now();
-
-    await db.execute(`INSERT INTO events (id, household_id, timestamp, type, description) VALUES ('${evId}', '${householdId}', ${timestamp}, '${type}', '${description}');`);
-    const state = await getCaseState();
-    return { success: true, event: { id: evId, timestamp, type, description }, case: state };
+    const event = await appendEvent(await householdId(), type, description);
+    return { success: true, event, case: await getCaseState() };
   },
 });
 
 export const updateEvidenceAction = defineAction({
   title: "Update SNAP Claim Evidence",
   description: "Update SNAP claim requirement verification status.",
-  schema: z.object({
-    requirement: z.enum(["householdMembersId", "residenceProof", "incomeProof", "householdComposition", "deadlinesNote"]),
-    verified: z.boolean(),
-  }),
+  schema: z.object({ requirement: z.enum(REQUIREMENTS), verified: z.boolean() }),
   run: async ({ requirement, verified }) => {
-    await ensureDb();
-    const db = getDbExec();
-    const hhRes = await db.execute("SELECT id FROM households LIMIT 1;");
-    if (!hhRes.rows || hhRes.rows.length === 0) {
-      throw new Error("No active household case found.");
-    }
-    const householdRow = hhRes.rows[0] as unknown as { id: string };
-    const householdId = householdRow.id;
-    const verifiedInt = verified ? 1 : 0;
-
-    await db.execute(`INSERT OR REPLACE INTO claim_requirements (id, household_id, requirement, verified) VALUES ('req-${requirement}-${householdId}', '${householdId}', '${requirement}', ${verifiedInt});`);
-
-    const evId = `ev-${Date.now()}`;
-    const timestamp = Date.now();
-    const desc = `SNAP requirement '${requirement}' marked as ${verified ? "verified" : "unverified"}.`;
-    await db.execute(`INSERT INTO events (id, household_id, timestamp, type, description) VALUES ('${evId}', '${householdId}', ${timestamp}, 'EVIDENCE_UPDATED', '${desc}');`);
-
-    const state = await getCaseState();
-    return { success: true, case: state };
+    const hid = await householdId();
+    await (await db()).execute({
+      sql: `INSERT INTO claim_requirements (id, household_id, requirement, verified) VALUES ($1,$2,$3,$4)
+            ON CONFLICT (id) DO UPDATE SET verified = $4`,
+      args: [`req-${requirement}-${hid}`, hid, requirement, verified],
+    });
+    await appendEvent(hid, "EVIDENCE_UPDATED", `SNAP requirement '${requirement}' marked as ${verified ? "verified" : "unverified"}.`);
+    return { success: true, case: await getCaseState() };
   },
 });
 
 export const updateStepStatusAction = defineAction({
   title: "Update Step Status",
   description: "Update the status of a crisis outreach step (waiting, calling, confirmed, declined).",
-  schema: z.object({
-    stepId: z.string(),
-    status: z.enum(["waiting", "calling", "confirmed", "declined"]),
-  }),
+  schema: z.object({ stepId: z.string(), status: z.enum(STATUSES) }),
   run: async ({ stepId, status }) => {
-    await ensureDb();
-    const db = getDbExec();
-    await db.execute(`UPDATE steps SET status = '${status}' WHERE id = '${stepId}';`);
-
-    const hhRes = await db.execute("SELECT id FROM households LIMIT 1;");
-    const householdRow = hhRes.rows && hhRes.rows.length > 0 ? (hhRes.rows[0] as unknown as { id: string }) : null;
-    const householdId = householdRow ? householdRow.id : "unknown";
-
-    const evId = `ev-${Date.now()}`;
-    const timestamp = Date.now();
-    const desc = `Step ${stepId} status changed to '${status}'.`;
-    await db.execute(`INSERT INTO events (id, household_id, timestamp, type, description) VALUES ('${evId}', '${householdId}', ${timestamp}, 'STEP_STATUS_CHANGED', '${desc}');`);
-
-    const state = await getCaseState();
-    return { success: true, case: state };
+    const hid = await householdId();
+    const { rowsAffected } = await (await db()).execute({
+      sql: "UPDATE steps SET status = $1 WHERE id = $2 AND household_id = $3", args: [status, stepId, hid],
+    });
+    if (!rowsAffected) throw new Error(`Unknown step: ${stepId}`);
+    await appendEvent(hid, "STEP_STATUS_CHANGED", `Step ${stepId} status changed to '${status}'.`);
+    return { success: true, case: await getCaseState() };
   },
 });
