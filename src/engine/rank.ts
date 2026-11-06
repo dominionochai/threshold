@@ -6,11 +6,20 @@ function hasVerification(resource: Resource): boolean {
 }
 
 function distanceRank(resource: Resource): number {
-  return typeof resource.distanceKm === "number" &&
+  if (resource.distanceKm === null || resource.distanceKm === undefined) {
+    return 1000000;
+  }
+  if (typeof resource.distanceKm === "number" && Number.isNaN(resource.distanceKm)) {
+    return 2000000;
+  }
+  if (
+    typeof resource.distanceKm === "number" &&
     Number.isFinite(resource.distanceKm) &&
     resource.distanceKm >= 0
-    ? resource.distanceKm
-    : Number.POSITIVE_INFINITY;
+  ) {
+    return resource.distanceKm;
+  }
+  return 1000000;
 }
 
 function childAcceptanceRank(resource: Resource): number {

@@ -6,7 +6,7 @@ const household: Household = {
   id: "household-1",
   children: [8],
   needs: ["bed"],
-  location: "Columbus, OH",
+  location: "Brooklyn",
   language: "English",
 };
 

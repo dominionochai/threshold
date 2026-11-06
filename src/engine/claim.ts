@@ -4,10 +4,11 @@ const REQUIREMENTS: ReadonlyArray<{
   requirement: ClaimEvidenceKey;
   description: string;
 }> = [
-  { requirement: "mealRecords", description: "Explicit meal records are missing." },
-  { requirement: "attendanceDays", description: "Attendance days are missing." },
-  { requirement: "allergyDeclarations", description: "Allergy declarations are missing." },
-  { requirement: "idDocuments", description: "ID documents are missing." }
+  { requirement: "householdMembersId", description: "ID for all household members is missing." },
+  { requirement: "residenceProof", description: "Proof of residence or shelter status is missing." },
+  { requirement: "incomeProof", description: "Income documentation is missing." },
+  { requirement: "householdComposition", description: "Household composition details are missing." },
+  { requirement: "deadlinesNote", description: "Deadlines acknowledgment (10-day documents, 7-day interview, 30-day determination) is missing." }
 ];
 
 /** False and unknown evidence are both reported as gaps. */

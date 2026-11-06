@@ -2,36 +2,39 @@ import { describe, expect, it } from "vitest";
 import { findClaimGaps } from "../claim";
 
 describe("findClaimGaps", () => {
-  it("reports each missing meal, attendance, allergy, and ID evidence requirement", () => {
+  it("reports each missing SNAP evidence requirement", () => {
     expect(findClaimGaps()).toEqual([
-      { requirement: "mealRecords", description: "Explicit meal records are missing." },
-      { requirement: "attendanceDays", description: "Attendance days are missing." },
-      { requirement: "allergyDeclarations", description: "Allergy declarations are missing." },
-      { requirement: "idDocuments", description: "ID documents are missing." },
+      { requirement: "householdMembersId", description: "ID for all household members is missing." },
+      { requirement: "residenceProof", description: "Proof of residence or shelter status is missing." },
+      { requirement: "incomeProof", description: "Income documentation is missing." },
+      { requirement: "householdComposition", description: "Household composition details are missing." },
+      { requirement: "deadlinesNote", description: "Deadlines acknowledgment (10-day documents, 7-day interview, 30-day determination) is missing." },
     ]);
   });
 
   it("treats false evidence as a gap while preserving requirements marked true", () => {
     expect(
       findClaimGaps({
-        mealRecords: false,
-        attendanceDays: true,
-        allergyDeclarations: false,
+        householdMembersId: false,
+        residenceProof: true,
+        incomeProof: false,
       }),
     ).toEqual([
-      { requirement: "mealRecords", description: "Explicit meal records are missing." },
-      { requirement: "allergyDeclarations", description: "Allergy declarations are missing." },
-      { requirement: "idDocuments", description: "ID documents are missing." },
+      { requirement: "householdMembersId", description: "ID for all household members is missing." },
+      { requirement: "incomeProof", description: "Income documentation is missing." },
+      { requirement: "householdComposition", description: "Household composition details are missing." },
+      { requirement: "deadlinesNote", description: "Deadlines acknowledgment (10-day documents, 7-day interview, 30-day determination) is missing." },
     ]);
   });
 
-  it("returns no gaps when all four evidence requirements are documented", () => {
+  it("returns no gaps when all five SNAP evidence requirements are documented", () => {
     expect(
       findClaimGaps({
-        mealRecords: true,
-        attendanceDays: true,
-        allergyDeclarations: true,
-        idDocuments: true,
+        householdMembersId: true,
+        residenceProof: true,
+        incomeProof: true,
+        householdComposition: true,
+        deadlinesNote: true,
       }),
     ).toEqual([]);
   });
