@@ -13,6 +13,37 @@ async function ensureDb() {
   }
 }
 
+interface HouseholdRow {
+  id: string;
+  children: string;
+  location: string;
+  language: string;
+  secondary_language?: string;
+}
+
+interface StepRow {
+  id: string;
+  need: string;
+  status: string;
+  resource_id?: string;
+}
+
+interface EventRow {
+  id: string;
+  timestamp: number;
+  type: string;
+  description: string;
+}
+
+interface RequirementRow {
+  requirement: string;
+  verified: number;
+}
+
+interface NeedRow {
+  need: string;
+}
+
 export async function getCaseState(): Promise<CaseRecord | null> {
   await ensureDb();
   const db = getDbExec();
@@ -20,19 +51,19 @@ export async function getCaseState(): Promise<CaseRecord | null> {
   if (!hhRes.rows || hhRes.rows.length === 0) {
     return null;
   }
-  const hh = hhRes.rows[0] as any;
+  const hh = hhRes.rows[0] as unknown as HouseholdRow;
   const householdId = hh.id;
 
   const stepsRes = await db.execute(`SELECT * FROM steps WHERE household_id = '${householdId}';`);
-  const steps: CaseStep[] = (stepsRes.rows || []).map((s: any) => ({
+  const steps: CaseStep[] = (stepsRes.rows as unknown as StepRow[]).map((s) => ({
     id: s.id,
-    need: s.need,
-    status: s.status,
+    need: s.need as any,
+    status: s.status as any,
     resourceId: s.resource_id,
   }));
 
   const eventsRes = await db.execute(`SELECT * FROM events WHERE household_id = '${householdId}' ORDER BY timestamp DESC;`);
-  const events: CaseEvent[] = (eventsRes.rows || []).map((e: any) => ({
+  const events: CaseEvent[] = (eventsRes.rows as unknown as EventRow[]).map((e) => ({
     id: e.id,
     timestamp: e.timestamp,
     type: e.type,
@@ -41,12 +72,16 @@ export async function getCaseState(): Promise<CaseRecord | null> {
 
   const reqsRes = await db.execute(`SELECT * FROM claim_requirements WHERE household_id = '${householdId}';`);
   const evidence: ClaimEvidence = {};
-  for (const r of (reqsRes.rows || [])) {
-    (evidence as any)[r.requirement] = r.verified === 1;
+  for (const r of (reqsRes.rows as unknown as RequirementRow[])) {
+    if (r.requirement === "householdMembersId") evidence.householdMembersId = r.verified === 1;
+    if (r.requirement === "residenceProof") evidence.residenceProof = r.verified === 1;
+    if (r.requirement === "incomeProof") evidence.incomeProof = r.verified === 1;
+    if (r.requirement === "householdComposition") evidence.householdComposition = r.verified === 1;
+    if (r.requirement === "deadlinesNote") evidence.deadlinesNote = r.verified === 1;
   }
 
   const needsRes = await db.execute(`SELECT need FROM needs WHERE household_id = '${householdId}';`);
-  const needs = (needsRes.rows || []).map((n: any) => n.need);
+  const needs = (needsRes.rows as unknown as NeedRow[]).map((n) => n.need as any);
 
   return {
     id: householdId,
@@ -58,7 +93,6 @@ export async function getCaseState(): Promise<CaseRecord | null> {
     evidence,
     steps,
     events,
-    simulated: true,
   };
 }
 
@@ -102,7 +136,8 @@ export const logEventAction = defineAction({
     if (!hhRes.rows || hhRes.rows.length === 0) {
       throw new Error("No active household case found.");
     }
-    const householdId = (hhRes.rows[0] as any).id;
+    const householdRow = hhRes.rows[0] as unknown as { id: string };
+    const householdId = householdRow.id;
     const evId = `ev-${Date.now()}`;
     const timestamp = Date.now();
 
@@ -126,7 +161,8 @@ export const updateEvidenceAction = defineAction({
     if (!hhRes.rows || hhRes.rows.length === 0) {
       throw new Error("No active household case found.");
     }
-    const householdId = (hhRes.rows[0] as any).id;
+    const householdRow = hhRes.rows[0] as unknown as { id: string };
+    const householdId = householdRow.id;
     const verifiedInt = verified ? 1 : 0;
 
     await db.execute(`INSERT OR REPLACE INTO claim_requirements (id, household_id, requirement, verified) VALUES ('req-${requirement}-${householdId}', '${householdId}', '${requirement}', ${verifiedInt});`);
@@ -154,7 +190,8 @@ export const updateStepStatusAction = defineAction({
     await db.execute(`UPDATE steps SET status = '${status}' WHERE id = '${stepId}';`);
 
     const hhRes = await db.execute("SELECT id FROM households LIMIT 1;");
-    const householdId = hhRes.rows && hhRes.rows.length > 0 ? (hhRes.rows[0] as any).id : "unknown";
+    const householdRow = hhRes.rows && hhRes.rows.length > 0 ? (hhRes.rows[0] as unknown as { id: string }) : null;
+    const householdId = householdRow ? householdRow.id : "unknown";
 
     const evId = `ev-${Date.now()}`;
     const timestamp = Date.now();

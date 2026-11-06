@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@agent-native/core": "^0.225.0",
+    "@ai-sdk/openai": "^4.0.110",
     "@electric-sql/pglite": "^0.5.15",
     "ai": "^6.0.168",
     "react": "^19.2.7",

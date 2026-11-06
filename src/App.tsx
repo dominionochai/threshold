@@ -10,6 +10,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [newEventDesc, setNewEventDesc] = useState("");
   const [borough, setBorough] = useState("Brooklyn");
+  const [childrenInput, setChildrenInput] = useState("5, 12");
 
   const loadState = async () => {
     try {
@@ -28,7 +29,8 @@ export default function App() {
 
   const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createCaseAction.run({ location: borough, childrenAges: [7, 11], language: "English" }, { caller: "frontend" });
+    const ages = childrenInput.split(",").map((s) => Number(s.trim())).filter((n) => Number.isFinite(n));
+    await createCaseAction.run({ location: borough, childrenAges: ages, language: "English" }, { caller: "frontend" });
     await loadState();
   };
 
@@ -65,7 +67,7 @@ export default function App() {
           </div>
           <div className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400 space-y-2">
             <p className="font-semibold text-zinc-300">Honest Empty State</p>
-            <p>No active case record exists in storage. Seed nothing fake. Initialize a household case below to begin tracking tonight's crisis and SNAP claim.</p>
+            <p>No active case record exists in storage. Seed nothing fake. Provide real household details below to begin tracking tonight's crisis and SNAP claim.</p>
           </div>
           <form onSubmit={handleCreateCase} className="space-y-4">
             <div>
@@ -81,6 +83,16 @@ export default function App() {
                 <option value="Bronx">Bronx</option>
                 <option value="Staten Island">Staten Island</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">Children Ages (comma-separated, e.g. 3, 7)</label>
+              <input
+                type="text"
+                value={childrenInput}
+                onChange={(e) => setChildrenInput(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500"
+                placeholder="3, 7"
+              />
             </div>
             <button
               type="submit"
@@ -143,7 +155,7 @@ export default function App() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-3">Tonight's Crisis Steps (Clock 1)</h2>
           <div className="space-y-3">
             {caseData.steps.map((step) => {
-              const res = resources.find(r => r.kind === step.need);
+              const res = resources.find((r) => r.kind === step.need);
               return (
                 <div key={step.id} className="p-4 rounded-lg bg-zinc-950/60 border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
