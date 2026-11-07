@@ -1,0 +1,8 @@
+[
+  {
+    "from": "dhs-afic",
+    "to": "dhs-path",
+    "reason": "Families with children under 21 apply at PATH, not AFIC",
+    "sourceUrl": "https://home4.nyc.gov/site/dhs/about/frequently-asked-questions.page"
+  }
+]

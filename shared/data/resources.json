@@ -1,0 +1,170 @@
+[
+  {
+    "id": "dhs-path",
+    "name": "PATH Intake Center (families with children)",
+    "kind": "bed",
+    "borough": "Bronx",
+    "lat": 40.8168,
+    "lng": -73.9186,
+    "address": "151 East 151st Street, Bronx, NY 10451",
+    "hours": "24/7",
+    "acceptsChildren": true,
+    "agesServed": [
+      {
+        "minAge": 0,
+        "maxAge": 17
+      }
+    ],
+    "phone": null,
+    "sourceUrl": "https://www.nyc.gov/site/dhs/shelter/families/families-with-children-applying.page",
+    "verifiedAt": "2026-11-07",
+    "conflictNote": "Open 24 hours, but applications are processed 9 am to 5 pm. Phone differs by source: (718) 503-6400 on 311, 917-521-3900 on the DHS Single Stop page."
+  },
+  {
+    "id": "dhs-afic",
+    "name": "Adult Family Intake Center (AFIC)",
+    "kind": "bed",
+    "borough": "Manhattan",
+    "lat": 40.7425,
+    "lng": -73.9765,
+    "address": "400-430 East 30th Street, New York, NY 10016",
+    "hours": "24/7",
+    "acceptsChildren": false,
+    "agesServed": null,
+    "phone": null,
+    "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
+    "verifiedAt": "2026-11-07",
+    "conflictNote": null
+  },
+  {
+    "id": "dhs-franklin",
+    "name": "Franklin Shelter (single adult women intake)",
+    "kind": "bed",
+    "borough": "Bronx",
+    "lat": 40.8305,
+    "lng": -73.9015,
+    "address": "1122 Franklin Avenue, Bronx, NY 10456",
+    "hours": "24/7",
+    "acceptsChildren": false,
+    "agesServed": null,
+    "phone": null,
+    "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
+    "verifiedAt": "2026-11-07",
+    "conflictNote": null
+  },
+  {
+    "id": "dhs-help-women",
+    "name": "HELP Women's Center (single adult women intake)",
+    "kind": "bed",
+    "borough": "Brooklyn",
+    "lat": 40.6622,
+    "lng": -73.9063,
+    "address": "114 Snediker Avenue, Brooklyn, NY 11207",
+    "hours": "24/7",
+    "acceptsChildren": false,
+    "agesServed": null,
+    "phone": null,
+    "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
+    "verifiedAt": null,
+    "conflictNote": "Address differs by source: 114 Snediker Avenue (311, Coalition for the Homeless) vs 116 Williams Avenue (DHS FAQ)."
+  },
+  {
+    "id": "pots-bronx",
+    "name": "Part of the Solution (POTS): soup kitchen and food pantry",
+    "kind": "food",
+    "borough": "Bronx",
+    "lat": 40.8657,
+    "lng": -73.8865,
+    "address": "2759 Webster Avenue, Bronx, NY 10458",
+    "hours": null,
+    "acceptsChildren": true,
+    "agesServed": [
+      {
+        "minAge": 0,
+        "maxAge": 17
+      }
+    ],
+    "phone": null,
+    "sourceUrl": "https://www.coalitionforthehomeless.org/resources/pots-part-solution",
+    "verifiedAt": null,
+    "conflictNote": "Hours differ by source: pantry Mon-Sat 9 am-12 pm and soup kitchen daily 12:30-3:30 pm (Coalition for the Homeless); pantry 8:30-11:30 am and kitchen Mon-Sat 12:30-3 pm (Food Helpline); kitchen Wed-Fri only (Plentiful). Call before going."
+  },
+  {
+    "id": "holy-apostles",
+    "name": "Holy Apostles Soup Kitchen",
+    "kind": "food",
+    "borough": "Manhattan",
+    "lat": 40.7458,
+    "lng": -73.9993,
+    "address": "296 9th Avenue, New York, NY",
+    "hours": null,
+    "acceptsChildren": null,
+    "agesServed": null,
+    "phone": null,
+    "sourceUrl": "https://www.coalitionforthehomeless.org/wp-content/uploads/2026/05/Resources-Guide_2026.pdf",
+    "verifiedAt": null,
+    "conflictNote": "Weekday meal times differ between Coalition for the Homeless guides: 12-1:30 pm (2024) vs 10:30 am-12 pm (2026)."
+  },
+  {
+    "id": "bread-and-life",
+    "name": "St. John's Bread & Life pantry",
+    "kind": "food",
+    "borough": "Brooklyn",
+    "lat": 40.6918,
+    "lng": -73.949,
+    "address": "795 Lexington Avenue, Brooklyn, NY",
+    "hours": {
+      "mon": [
+        [
+          "08:00",
+          "14:00"
+        ]
+      ],
+      "tue": [
+        [
+          "08:00",
+          "14:00"
+        ]
+      ],
+      "wed": [
+        [
+          "08:00",
+          "14:00"
+        ]
+      ],
+      "thu": [
+        [
+          "08:00",
+          "14:00"
+        ]
+      ]
+    },
+    "acceptsChildren": null,
+    "agesServed": null,
+    "phone": null,
+    "sourceUrl": "https://www.coalitionforthehomeless.org/wp-content/uploads/2026/05/Resources-Guide_2026.pdf",
+    "verifiedAt": null,
+    "conflictNote": "Single source. ID and a shelter residency letter are required."
+  },
+  {
+    "id": "lincoln-ed",
+    "name": "NYC Health + Hospitals/Lincoln emergency department",
+    "kind": "medical",
+    "borough": "Bronx",
+    "lat": 40.817,
+    "lng": -73.917,
+    "address": "234 East 149th Street, Bronx, NY 10451",
+    "hours": "24/7",
+    "acceptsChildren": true,
+    "agesServed": [
+      {
+        "minAge": 0,
+        "maxAge": 17
+      }
+    ],
+    "phone": null,
+    "sourceUrl": "https://www.nychealthandhospitals.org/lincoln/patients-visitors/",
+    "verifiedAt": "2026-11-07",
+    "conflictNote": null
+  }
+]
