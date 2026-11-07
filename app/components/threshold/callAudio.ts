@@ -32,6 +32,15 @@ export function playWav(base64: string): Promise<void> {
   });
 }
 
+export function speakInBrowser(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
+    speechSynthesis.speak(utterance);
+  });
+}
+
 /** The browser's speech-recognition result event, which the shared global typings leave out. */
 type ResultEvent = Event & { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> };
 

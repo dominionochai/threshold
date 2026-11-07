@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callerPrompt, evidenceFor, stepStatusFor, toContents, transcriptText, type Outcome } from "../call";
+import { callerPrompt, evidenceFor, outcomeFromStaff, scriptedLines, scriptedStep, stepStatusFor, toContents, transcriptText, type Outcome, type Turn } from "../call";
 import { household, resource } from "./fixtures";
 
 const outcome = (result: Outcome["result"]): Outcome => ({ result, summary: "s", instructions: [], spokeWith: null });
@@ -54,5 +54,47 @@ describe("toContents", () => {
     ]);
     expect(merged.map((c) => c.role)).toEqual(["user", "model", "user"]);
     expect(merged[2]?.parts).toHaveLength(2);
+  });
+});
+
+describe("scripted call", () => {
+  const lines = scriptedLines(household, resource({ name: "PATH" }), "bed");
+
+  it("fills the script from the case and ends with a goodbye", () => {
+    expect(lines[0]).toContain("PATH");
+    expect(lines[1]).toContain("ages 4 and 7");
+    expect(lines[1]).toContain("a place to sleep tonight");
+    expect(lines[lines.length - 1]).toContain("Goodbye");
+  });
+
+  it("advances one line per caller turn and ends the call on the last", () => {
+    const turns: Turn[] = [];
+    const said: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const { say, endCall } = scriptedStep(lines, turns);
+      said.push(say);
+      expect(endCall).toBe(i === lines.length - 1);
+      turns.push({ who: "agent", text: say }, { who: "shelter", text: "ok" });
+    }
+    expect(said).toEqual(lines);
+  });
+});
+
+describe("outcomeFromStaff", () => {
+  const staff = (...text: string[]): Turn[] => text.map((t) => ({ who: "shelter", text: t }));
+
+  it("reads a yes with what to bring and by when", () => {
+    const outcome = outcomeFromStaff(staff("Yes, we have a family room.", "Come before nine tonight. Bring ID for everyone."), "PATH");
+    expect(outcome.result).toBe("confirmed");
+    expect(outcome.instructions).toEqual(["Come before nine tonight", "Bring ID for everyone"]);
+  });
+
+  it("reads a no, and refuses to guess when it is neither", () => {
+    expect(outcomeFromStaff(staff("Sorry, we're full tonight."), "PATH").result).toBe("declined");
+    expect(outcomeFromStaff(staff("Let me check on that."), "PATH").result).toBe("unclear");
+  });
+
+  it("treats a call where staff said nothing as unanswered", () => {
+    expect(outcomeFromStaff([], "PATH").result).toBe("unclear");
   });
 });

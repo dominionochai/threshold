@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { Resource } from "./resource";
-import type { ClaimEvidenceKey, Household, Need, StepStatus } from "./types";
+import type { ClaimEvidenceKey, Household, Need, StepStatus, Turn } from "./types";
 
-export type Turn = { who: "agent" | "shelter"; text: string };
+export type { Turn };
 
 export const turnSchema = z.object({ who: z.enum(["agent", "shelter"]), text: z.string().max(1000) });
 export const lineSchema = z.object({ say: z.string().min(1), endCall: z.boolean() });
@@ -69,4 +69,49 @@ export function toContents(turns: readonly Turn[]) {
     else contents.push({ role, parts: [{ text: turn.text }] });
   }
   return contents;
+}
+
+const NEED_PHRASE: Record<Need, string> = {
+  bed: "a place to sleep tonight",
+  food: "a meal",
+  medical: "medical care",
+  legal: "legal help",
+};
+
+/** The demo call: fixed caller lines, filled in from the case. The other end still answers freely. */
+export function scriptedLines(household: Household, resource: Resource, need: Need): string[] {
+  const kids = household.children.length;
+  const who = `${kids} ${kids === 1 ? "child" : "children"}${kids ? `, ages ${household.children.join(" and ")}` : ""}`;
+  return [
+    `Hello, this is Threshold's assistant. I'm calling for a family. Is this ${resource.name}?`,
+    `Thank you. I'm calling for a mother in ${household.location} with ${who}. She needs ${NEED_PHRASE[need]}. Can you take the family tonight?`,
+    "I understand. Where should she go, and by what time?",
+    "Is there anything she needs to bring, or anyone to ask for?",
+    "Thank you, that helps a lot. I'll let her know right away. Goodbye.",
+  ];
+}
+
+/** The caller's next scripted line, given how many lines it has already spoken. */
+export function scriptedStep(lines: readonly string[], turns: readonly Turn[]) {
+  const spoken = turns.filter((t) => t.who === "agent").length;
+  const index = Math.min(spoken, lines.length - 1);
+  return { say: lines[index] ?? "", endCall: index === lines.length - 1 };
+}
+
+const REFUSAL = /\b(no space|no beds?|no room|we(?:'re| are) full|can(?:no|')t|unable|not able|full tonight)\b/i;
+const WELCOME = /\b(yes|yeah|sure|we can|we do|we have|come in|bring (?:them|her|the family)|have (?:a )?(?:room|space|bed)|available)\b/i;
+const TO_DO = /\b(bring|before|by \d|arrive|ask for|id)\b/i;
+
+/** Reads what staff said without a model, so the scripted demo never depends on one. */
+export function outcomeFromStaff(turns: readonly Turn[], placeName: string): Outcome {
+  const said = turns.filter((t) => t.who === "shelter").map((t) => t.text);
+  if (said.length === 0) return NO_ANSWER;
+  const all = said.join(" ");
+  const refused = REFUSAL.test(all);
+  const welcomed = WELCOME.test(all);
+  const result = welcomed && !refused ? "confirmed" : refused && !welcomed ? "declined" : "unclear";
+  const instructions = said.flatMap((line) => line.split(/(?<=[.!?])\s+/)).filter((sentence) => TO_DO.test(sentence)).map((sentence) => sentence.replace(/[.!?]+$/, "").trim()).slice(0, 3);
+  const summary =
+    result === "confirmed" ? `${placeName} said they can take the family tonight.` : result === "declined" ? `${placeName} said they cannot take the family tonight.` : `${placeName} did not clearly say yes or no.`;
+  return { result, summary, instructions: result === "confirmed" ? instructions : [], spokeWith: null };
 }

@@ -51,11 +51,16 @@ export interface CaseEvent {
   description: string;
 }
 
+export type Turn = { who: "agent" | "shelter"; text: string };
+
+/** A call that has been placed and not yet closed. Both the case screen and the staff line read this. */
 export interface ActiveCall {
   id: string;
   stepId: string;
   resourceId: string;
   resourceName: string;
+  status: "ringing" | "live";
+  turns: Turn[];
 }
 
 export interface CaseRecord extends Household {

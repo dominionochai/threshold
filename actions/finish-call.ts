@@ -1,8 +1,9 @@
 import { defineAction } from "@agent-native/core/action";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { clerkPrompt, evidenceFor, NO_ANSWER, outcomeSchema, stepStatusFor, transcriptText, turnSchema } from "../shared/engine/call.js";
+import { clerkPrompt, evidenceFor, NO_ANSWER, outcomeFromStaff, outcomeSchema, stepStatusFor, transcriptText, turnSchema } from "../shared/engine/call.js";
 import { getDb, schema } from "../server/db/index.js";
+import { isScripted } from "../server/lib/call-mode.js";
 import { appendEvent, loadOpenCall } from "../server/lib/case.js";
 import { attempt, generateJson } from "../server/lib/gemini.js";
 
@@ -17,7 +18,7 @@ export default defineAction({
     await db.update(schema.calls).set({ status: "completed", transcript: turns }).where(eq(schema.calls.id, callId));
 
     const heard = turns.some((t) => t.who === "shelter");
-    const read = heard ? await attempt(() => generateJson(clerkPrompt(resource), [{ who: "shelter", text: transcriptText(turns) }], outcomeSchema)) : NO_ANSWER;
+    const read = !heard ? NO_ANSWER : isScripted() ? outcomeFromStaff(turns, resource.name) : await attempt(() => generateJson(clerkPrompt(resource), [{ who: "shelter", text: transcriptText(turns) }], outcomeSchema));
     if ("error" in read) return read;
     const outcome = read;
     await db.update(schema.calls).set({ outcome }).where(eq(schema.calls.id, callId));

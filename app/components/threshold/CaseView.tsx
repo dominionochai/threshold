@@ -1,9 +1,7 @@
 import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
-import { useEffect, useState } from "react";
 import { findClaimGaps } from "@shared/engine/claim";
-import { CLAIM_REQUIREMENTS, STEP_STATUSES, type ActiveCall, type CaseRecord, type ClaimEvidenceKey } from "@shared/engine/types";
-import { Phone } from "./Phone";
-import { PhoneBoundary } from "./PhoneBoundary";
+import { CLAIM_REQUIREMENTS, STEP_STATUSES, type CaseRecord, type ClaimEvidenceKey } from "@shared/engine/types";
+import { LiveCall } from "./LiveCall";
 import { ScoutList } from "./ScoutList";
 
 const panel = "rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-3";
@@ -23,12 +21,6 @@ export function CaseView({ record }: { record: CaseRecord }) {
   const updateEvidence = useActionMutation("update-evidence");
   const gaps = findClaimGaps(record.evidence);
 
-  // Keep the phone open after the call closes, so the outcome can be read before dismissing it.
-  const [phoneCall, setPhoneCall] = useState<ActiveCall | null>(record.activeCall);
-  useEffect(() => {
-    if (record.activeCall) setPhoneCall(record.activeCall);
-  }, [record.activeCall]);
-
   const timeOf = (eventId: string) => {
     const event = record.events.find((e) => e.id === eventId);
     return event ? new Date(event.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
@@ -36,11 +28,7 @@ export function CaseView({ record }: { record: CaseRecord }) {
 
   return (
     <main className="mx-auto min-h-full max-w-2xl space-y-4 bg-zinc-950 p-4 text-zinc-100">
-      {phoneCall && (
-        <PhoneBoundary key={phoneCall.id} onClose={() => setPhoneCall(null)}>
-          <Phone call={phoneCall} location={record.location} onClose={() => setPhoneCall(null)} />
-        </PhoneBoundary>
-      )}
+      {record.activeCall && <LiveCall call={record.activeCall} />}
 
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{record.location}</h1>

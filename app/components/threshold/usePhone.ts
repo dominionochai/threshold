@@ -1,8 +1,8 @@
 import { useActionMutation } from "@agent-native/core/client/hooks";
 import { useEffect, useRef, useState } from "react";
-import type { Outcome, Turn } from "@shared/engine/call";
-import type { ActiveCall } from "@shared/engine/types";
-import { playWav, startRinging } from "./callAudio";
+import type { Outcome } from "@shared/engine/call";
+import type { ActiveCall, Turn } from "@shared/engine/types";
+import { playWav, speakInBrowser, startRinging } from "./callAudio";
 
 /** Actions report model failures as `{ error }`; turn that back into a thrown, readable error. */
 function unwrap<T>(result: T | { error: string }): T {
@@ -14,8 +14,8 @@ export type Phase = "ringing" | "live" | "wrapping" | "done";
 
 /** Runs one call: the caller speaks, the person on the other end answers, and the call is closed into the case. */
 export function usePhone(call: ActiveCall) {
-  const [phase, setPhase] = useState<Phase>("ringing");
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [phase, setPhase] = useState<Phase>(call.status === "live" ? "live" : "ringing");
+  const [turns, setTurns] = useState<Turn[]>(call.turns);
   const [busy, setBusy] = useState<"thinking" | "speaking" | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +28,7 @@ export function usePhone(call: ActiveCall) {
   const finish = useActionMutation("finish-call");
 
   useEffect(() => {
+    if (call.status === "live") return undefined;
     try {
       stopRing.current = startRinging();
     } catch {
@@ -50,11 +51,12 @@ export function usePhone(call: ActiveCall) {
     try {
       setBusy("thinking");
       const { say, endCall } = unwrap(await nextLine.mutateAsync({ callId: call.id, turns: history }));
-      const { audio } = unwrap(await speak.mutateAsync({ text: say }));
+      // If the voice service is down, the caller still speaks, in the browser's own voice.
+      const audio = await speak.mutateAsync({ text: say }).then((r) => unwrap(r).audio, () => null);
       const next: Turn[] = [...history, { who: "agent", text: say }];
       setTurns(next);
       setBusy("speaking");
-      await playWav(audio);
+      await (audio ? playWav(audio) : speakInBrowser(say));
       setBusy(null);
       if (endCall) await hangUp(next);
     } catch (e) {

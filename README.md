@@ -16,3 +16,12 @@ pnpm typecheck
 - `server/db` Drizzle schema and migrations. `actions/` the shared operations. `app/` the screens.
 
 Data rule: nothing is invented. Records confirmed against an official source carry a verified date; everything else shows as unverified, and sources that disagree are shown as a conflict, not silently resolved.
+
+## Demo: two tabs
+
+1. Add `THRESHOLD_CALL_MODE=script` to `.env` (scripted is also the default; `live` uses the model).
+2. Tab 1, `/home`: the app. Run intake, then tap **Have Threshold call** and approve.
+3. Tab 2, `/staff`: the shelter's phone. It rings; press **Answer**, then reply by voice as the staff member.
+4. Tab 1 follows the call live. When it ends, the step, the trail and the claim evidence update.
+
+The caller's lines are fixed and filled in from the case, and the outcome is read from what staff said without a model. Everything else (Scout, approvals, evidence link) is the real app.

@@ -10,6 +10,7 @@ import placeCall from "../place-call";
 
 vi.mock("../../server/lib/gemini", async (original) => ({ ...(await original<typeof gemini>()), generateJson: vi.fn(), synthesize: vi.fn() }));
 const generateJson = vi.mocked(gemini.generateJson);
+vi.stubEnv("THRESHOLD_CALL_MODE", "live");
 
 const talk = [
   { who: "agent", text: "Hi, I'm an assistant calling for a family." },
