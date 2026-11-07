@@ -47,7 +47,6 @@ export function scout(
         ...(household.children.length ? [`Takes ages ${household.children.join(", ")}`] : []),
         `${(km * KM_TO_MILES).toFixed(1)} mi`,
         ...(verified ? [] : ["Unverified"]),
-        ...(resource.conflictNote ? [`Sources conflict: ${resource.conflictNote}`] : []),
       ];
       return { resource, openness: status, distanceKm: km, verified, reasons };
     })

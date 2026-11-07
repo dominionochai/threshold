@@ -1,6 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { NEEDS, STEP_STATUSES, CLAIM_REQUIREMENTS, type CaseRecord } from "../../shared/engine/types.js";
+import { resources } from "../../shared/data/resources.js";
 import { getDb, schema } from "../db/index.js";
 
 const need = z.enum(NEEDS);
@@ -12,11 +13,17 @@ export async function loadCase(): Promise<CaseRecord | null> {
   const [household] = await db.select().from(schema.households).orderBy(desc(schema.households.createdAt)).limit(1);
   if (!household) return null;
 
-  const [needs, steps, events, requirements] = await Promise.all([
+  const [needs, steps, events, requirements, [ringing]] = await Promise.all([
     db.select().from(schema.needs).where(eq(schema.needs.householdId, household.id)).orderBy(schema.needs.priority),
     db.select().from(schema.steps).where(eq(schema.steps.householdId, household.id)).orderBy(schema.steps.id),
     db.select().from(schema.events).where(eq(schema.events.householdId, household.id)).orderBy(desc(schema.events.timestamp)),
     db.select().from(schema.claimRequirements).where(eq(schema.claimRequirements.householdId, household.id)),
+    db
+      .select()
+      .from(schema.calls)
+      .where(and(eq(schema.calls.householdId, household.id), eq(schema.calls.status, "ringing")))
+      .orderBy(desc(schema.calls.startedAt))
+      .limit(1),
   ]);
 
   return {
@@ -28,6 +35,10 @@ export async function loadCase(): Promise<CaseRecord | null> {
     steps: steps.map((s) => ({ id: s.id, need: need.parse(s.need), status: status.parse(s.status), resourceId: s.resourceId })),
     events: events.map(({ id, timestamp, type, description }) => ({ id, timestamp, type, description })),
     evidence: Object.fromEntries(requirements.map((r) => [requirement.parse(r.requirement), r.verified])),
+    evidenceLinks: Object.fromEntries(requirements.flatMap((r) => (r.eventId ? [[requirement.parse(r.requirement), r.eventId]] : []))),
+    activeCall: ringing
+      ? { id: ringing.id, stepId: ringing.stepId, resourceId: ringing.resourceId, resourceName: resources.find((r) => r.id === ringing.resourceId)?.name ?? ringing.resourceId }
+      : null,
   };
 }
 
@@ -41,4 +52,15 @@ export async function appendEvent(householdId: string, type: string, description
   const event = { id: `ev-${crypto.randomUUID()}`, householdId, timestamp: Date.now(), type, description };
   await getDb().insert(schema.events).values(event);
   return { id: event.id, timestamp: event.timestamp, type, description };
+}
+
+/** The call plus what it concerns, or an error if it is not an open call on this case. */
+export async function loadOpenCall(callId: string) {
+  const [call] = await getDb().select().from(schema.calls).where(and(eq(schema.calls.id, callId), eq(schema.calls.status, "ringing")));
+  const resource = resources.find((r) => r.id === call?.resourceId);
+  const household = await loadCase();
+  if (!call || !resource || household?.id !== call.householdId) throw new Error(`No open call: ${callId}`);
+  const step = household.steps.find((s) => s.id === call.stepId);
+  if (!step) throw new Error(`Call ${callId} has no step`);
+  return { call, resource, household, step };
 }

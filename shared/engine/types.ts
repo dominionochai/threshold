@@ -51,8 +51,18 @@ export interface CaseEvent {
   description: string;
 }
 
+export interface ActiveCall {
+  id: string;
+  stepId: string;
+  resourceId: string;
+  resourceName: string;
+}
+
 export interface CaseRecord extends Household {
   evidence: ClaimEvidence;
+  /** The call (event) that supports a requirement without yet proving it. */
+  evidenceLinks: Partial<Record<ClaimEvidenceKey, string>>;
+  activeCall: ActiveCall | null;
   steps: CaseStep[];
   events: CaseEvent[];
 }

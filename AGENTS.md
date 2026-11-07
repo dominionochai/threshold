@@ -2,7 +2,7 @@
 
 Threshold keeps one case record for a New York City household: tonight's crisis (food, bed, medical, legal) and the SNAP claim that follows. The home screen (`/home`) is the case record; intake is tap-only.
 
-Actions: `get-case`, `create-case`, `rank-resources` (Scout, read-only), `update-step`, `update-evidence`, `log-event`. Offer only places `rank-resources` returns, never invent a place, phone number or hour, and say when a record is unverified or its sources conflict. Log what happens with `log-event`: the activity trail is the evidence ledger for the claim. Pure logic lives in `shared/engine`; data in `shared/data`.
+Actions: `get-case`, `create-case`, `rank-resources` (Scout, read-only), `place-call` (needs a person's approval, opens the phone), `update-step`, `update-evidence`, `log-event`. Offer only places `rank-resources` returns, never invent a place, phone number or hour, and say when a record is unverified or its sources conflict. Log what happens with `log-event`: the activity trail is the evidence ledger for the claim. Pure logic lives in `shared/engine`; data in `shared/data`.
 
 # Chat template guide (framework conventions)
 

@@ -1,10 +1,20 @@
 import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
+import { useEffect, useState } from "react";
 import { findClaimGaps } from "@shared/engine/claim";
-import { CLAIM_REQUIREMENTS, STEP_STATUSES, type CaseRecord } from "@shared/engine/types";
+import { CLAIM_REQUIREMENTS, STEP_STATUSES, type ActiveCall, type CaseRecord, type ClaimEvidenceKey } from "@shared/engine/types";
+import { Phone } from "./Phone";
 import { ScoutList } from "./ScoutList";
 
 const panel = "rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-3";
 const heading = "text-sm font-semibold uppercase tracking-wide text-zinc-400";
+
+const CLAIM_LABEL: Record<ClaimEvidenceKey, string> = {
+  householdMembersId: "ID for everyone in the household",
+  residenceProof: "Proof of residence or shelter status",
+  incomeProof: "Income documents",
+  householdComposition: "Who lives in the household",
+  deadlinesNote: "Deadlines understood (10, 7 and 30 days)",
+};
 
 export function CaseView({ record }: { record: CaseRecord }) {
   const { data: scout } = useActionQuery("rank-resources", {});
@@ -12,8 +22,21 @@ export function CaseView({ record }: { record: CaseRecord }) {
   const updateEvidence = useActionMutation("update-evidence");
   const gaps = findClaimGaps(record.evidence);
 
+  // Keep the phone open after the call closes, so the outcome can be read before dismissing it.
+  const [phoneCall, setPhoneCall] = useState<ActiveCall | null>(record.activeCall);
+  useEffect(() => {
+    if (record.activeCall) setPhoneCall(record.activeCall);
+  }, [record.activeCall]);
+
+  const timeOf = (eventId: string) => {
+    const event = record.events.find((e) => e.id === eventId);
+    return event ? new Date(event.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  };
+
   return (
     <main className="mx-auto min-h-full max-w-2xl space-y-4 bg-zinc-950 p-4 text-zinc-100">
+      {phoneCall && <Phone key={phoneCall.id} call={phoneCall} location={record.location} onClose={() => setPhoneCall(null)} />}
+
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{record.location}</h1>
         <p className="text-xs text-zinc-400">
@@ -39,7 +62,10 @@ export function CaseView({ record }: { record: CaseRecord }) {
                 ))}
               </div>
             </div>
-            <ScoutList plan={scout?.[step.need]} />
+            {step.status === "declined" && (
+              <p className="text-sm text-amber-200">Declined. If nothing else below works, call 311 and ask for family shelter placement tonight.</p>
+            )}
+            <ScoutList plan={scout?.[step.need]} step={step} record={record} />
           </div>
         ))}
       </section>
@@ -48,14 +74,21 @@ export function CaseView({ record }: { record: CaseRecord }) {
         <h2 className={heading}>SNAP claim: what is still missing</h2>
         {CLAIM_REQUIREMENTS.map((requirement) => {
           const verified = record.evidence[requirement] === true;
+          const link = record.evidenceLinks[requirement];
           return (
             <button
               key={requirement}
-              className="flex w-full justify-between text-left text-sm"
+              className="flex w-full justify-between gap-4 text-left text-sm"
               onClick={() => updateEvidence.mutate({ requirement, verified: !verified })}
             >
-              <span className={verified ? "text-zinc-500 line-through" : ""}>{requirement}</span>
-              <span className={verified ? "text-emerald-400" : "text-amber-400"}>{verified ? "verified" : "missing"}</span>
+              <span className={verified ? "text-zinc-500 line-through" : ""}>{CLAIM_LABEL[requirement]}</span>
+              {verified ? (
+                <span className="text-emerald-400">verified</span>
+              ) : link ? (
+                <span className="text-right text-amber-300">stated on a call at {timeOf(link)} · document still needed</span>
+              ) : (
+                <span className="text-amber-400">missing</span>
+              )}
             </button>
           );
         })}

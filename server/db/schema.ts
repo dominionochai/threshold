@@ -37,4 +37,17 @@ export const claimRequirements = pgTable("claim_requirements", {
   householdId: text("household_id").notNull(),
   requirement: text("requirement").notNull(),
   verified: boolean("verified").notNull(),
+  /** The event (a call) that supports this requirement without proving it. */
+  eventId: text("event_id"),
+});
+
+export const calls = pgTable("calls", {
+  id: text("id").primaryKey(),
+  householdId: text("household_id").notNull(),
+  stepId: text("step_id").notNull(),
+  resourceId: text("resource_id").notNull(),
+  status: text("status").notNull(),
+  transcript: jsonb("transcript").$type<{ who: string; text: string }[]>().notNull(),
+  outcome: jsonb("outcome"),
+  startedAt: bigint("started_at", { mode: "number" }).notNull(),
 });
