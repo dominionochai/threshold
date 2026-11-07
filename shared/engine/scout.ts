@@ -9,6 +9,10 @@ export interface ScoutResult {
   openness: Openness;
   distanceKm: number;
   verified: boolean;
+  /** Plain context worth knowing. Shown as a note, never as a conflict. */
+  note: string | null;
+  /** Set only where sources disagree. */
+  conflict: string | null;
   reasons: string[];
 }
 
@@ -47,9 +51,9 @@ export function scout(
         ...(household.children.length ? [`Takes ages ${household.children.join(", ")}`] : []),
         `${(km * KM_TO_MILES).toFixed(1)} mi`,
         ...(verified ? [] : ["Unverified"]),
-        ...(resource.conflictNote ? [`Sources conflict: ${resource.conflictNote}`] : []),
+        ...(resource.conflict ? [`Sources conflict: ${resource.conflict}`] : []),
       ];
-      return { resource, openness: status, distanceKm: km, verified, reasons };
+      return { resource, openness: status, distanceKm: km, verified, note: resource.note, conflict: resource.conflict, reasons };
     })
     .sort((a, b) => tier(a) - tier(b) || a.distanceKm - b.distanceKm);
 }

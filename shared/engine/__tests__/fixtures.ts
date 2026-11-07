@@ -24,6 +24,7 @@ export const resource = (overrides: Partial<Resource> = {}): Resource => ({
   phone: null,
   sourceUrl: "https://example.org",
   verifiedAt: "2026-01-15",
-  conflictNote: null,
+  note: null,
+  conflict: null,
   ...overrides,
 });

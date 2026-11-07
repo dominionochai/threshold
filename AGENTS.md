@@ -1,12 +1,12 @@
 # Threshold — Agent Guide
 
-Threshold keeps one case record for a New York City household: tonight's crisis (food, bed, medical, legal) and the SNAP claim that follows. The home screen (`/home`) is the case record; intake is tap-only.
+Threshold keeps one case record for a New York City household: tonight's crisis (food, bed, medical, legal) and the SNAP claim that follows. The home screen (`/home`) is the whole app: "Tell us what's going on" (free text or voice, parsed by `shared/engine/story.ts`) opens the case, then two tabs, Tonight (a map with a draggable sheet) and Claim. There is no chat surface; the helpers' voices appear in the team feed.
 
-Actions: `get-case`, `create-case`, `rank-resources` (Scout, read-only), `update-step`, `update-evidence`, `log-event`. Offer only places `rank-resources` returns, never invent a place, phone number or hour, and say when a record is unverified or its sources conflict. Log what happens with `log-event`: the activity trail is the evidence ledger for the claim. Pure logic lives in `shared/engine`; data in `shared/data`.
+Actions: `get-case`, `create-case`, `rank-resources` (Scout, read-only), `request-call` (drafts a call for approval), `decide-approval` (the parent's yes or no; a yes runs the rehearsed call), `update-step`, `update-evidence`, `log-event`. Offer only places `rank-resources` returns, never invent a place, phone number, hour or street, and say when a record is unverified or its sources conflict. Nothing outbound happens without a person's yes: a call is always drafted as an approval first. Calls are rehearsed (simulated) until a real telephony provider is configured, and the UI says so. A declined bed ends honestly at 311, never with a promise. Distances are straight-line from real coordinates; directions hand off to Google Maps. Log what happens with `log-event`: the activity trail is the evidence ledger, and `linkEvidence` lines it up against the SNAP claim. Pure logic lives in `shared/engine`; data in `shared/data`. UI is mobile-first with tokens `th-*` in `app/global.css`; keep one amber action per screen and 56px tap targets.
 
-# Chat template guide (framework conventions)
+# Framework conventions
 
-Chat is the minimal chat-first agent-native app. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
+This app started from the chat template; its chat routes and sidebar are removed from `/home`. `/` redirects to shared sign-in, then `/home`. Actions carry capabilities; screens exist only for durable workflows.
 
 ## Skills
 
@@ -25,7 +25,7 @@ For custom branding, keep `server/plugins/agent-native-email-branding.ts` aligne
 
 ## Application state
 
-- `navigation` describes the view and selected ids. Chat is `chat` at `/chat` and `/chat/<threadId>`; the Get started page is `home` at `/home`; `/` opens shared sign-in/signup.
+- `navigation` describes the view and selected ids. The case record is `home` at `/home`; `/` opens shared sign-in/signup.
 - Use `navigate` when supported and `view-screen` for a fresh read of visible details; basic navigation is already in `<current-screen>`.
 
 ## Building a domain app

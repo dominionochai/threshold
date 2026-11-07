@@ -281,3 +281,56 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.34);
 }
+
+/* Threshold: warm dark tokens for a phone used at night, under stress. One accent, used for the next action only. */
+@theme {
+  --color-th-ground: #0e0d0c;
+  --color-th-surface: #1a1816;
+  --color-th-raised: #24211e;
+  --color-th-line: #2e2a26;
+  --color-th-text: #f5f1ea;
+  --color-th-muted: #a39b90;
+  --color-th-amber: #f5b544;
+  --color-th-ink: #1a1206;
+  --color-th-open: #5fd08a;
+  --color-th-closed: #f2736b;
+}
+
+body {
+  background: var(--color-th-ground);
+  color: var(--color-th-text);
+}
+
+.th-press {
+  transition: transform 100ms ease-out, background-color 150ms ease-out, opacity 150ms ease-out;
+}
+.th-press:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+@keyframes th-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes th-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes th-sheet {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes th-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(242 115 107 / 0.55); }
+  100% { box-shadow: 0 0 0 18px rgb(242 115 107 / 0); }
+}
+.th-in { animation: th-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.th-fade { animation: th-fade 200ms ease-out both; }
+.th-sheet { animation: th-sheet 340ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.th-pulse { animation: th-pulse 1.4s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .th-in, .th-sheet, .th-pulse { animation: th-fade 120ms ease-out both; }
+  .th-press { transition: none; }
+  .th-press:active:not(:disabled) { transform: none; }
+}

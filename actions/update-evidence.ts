@@ -2,6 +2,8 @@ import { defineAction } from "@agent-native/core/action";
 import { z } from "zod";
 import { getDb, schema } from "../server/db/index.js";
 import { appendEvent, currentHouseholdId } from "../server/lib/case.js";
+import { REQUIREMENT_LABEL } from "../shared/engine/claim.js";
+import { EVENT } from "../shared/engine/events.js";
 import { CLAIM_REQUIREMENTS } from "../shared/engine/types.js";
 
 export default defineAction({
@@ -13,7 +15,7 @@ export default defineAction({
       .insert(schema.claimRequirements)
       .values({ id: `req-${requirement}-${householdId}`, householdId, requirement, verified })
       .onConflictDoUpdate({ target: schema.claimRequirements.id, set: { verified } });
-    await appendEvent(householdId, "EVIDENCE_UPDATED", `SNAP requirement '${requirement}' marked ${verified ? "verified" : "unverified"}.`);
+    await appendEvent(householdId, EVENT.EVIDENCE_UPDATED, `Claim clerk: "${REQUIREMENT_LABEL[requirement].title}" is ${verified ? "ready for your SNAP claim" : "back on the list of what's missing"}.`);
     return { requirement, verified };
   },
 });

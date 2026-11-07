@@ -1,22 +1,25 @@
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { NEEDS, STEP_STATUSES, CLAIM_REQUIREMENTS, type CaseRecord } from "../../shared/engine/types.js";
+import { APPROVAL_STATUSES, NEEDS, STEP_STATUSES, CLAIM_REQUIREMENTS, type CaseRecord } from "../../shared/engine/types.js";
 import { getDb, schema } from "../db/index.js";
 
 const need = z.enum(NEEDS);
 const status = z.enum(STEP_STATUSES);
 const requirement = z.enum(CLAIM_REQUIREMENTS);
+const approvalStatus = z.enum(APPROVAL_STATUSES);
+const outcome = z.enum(["confirmed", "declined"]);
 
 export async function loadCase(): Promise<CaseRecord | null> {
   const db = getDb();
   const [household] = await db.select().from(schema.households).orderBy(desc(schema.households.createdAt)).limit(1);
   if (!household) return null;
 
-  const [needs, steps, events, requirements] = await Promise.all([
+  const [needs, steps, events, requirements, approvals] = await Promise.all([
     db.select().from(schema.needs).where(eq(schema.needs.householdId, household.id)).orderBy(schema.needs.priority),
     db.select().from(schema.steps).where(eq(schema.steps.householdId, household.id)).orderBy(schema.steps.id),
     db.select().from(schema.events).where(eq(schema.events.householdId, household.id)).orderBy(desc(schema.events.timestamp)),
     db.select().from(schema.claimRequirements).where(eq(schema.claimRequirements.householdId, household.id)),
+    db.select().from(schema.approvals).where(eq(schema.approvals.householdId, household.id)).orderBy(desc(schema.approvals.createdAt)),
   ]);
 
   return {
@@ -28,6 +31,18 @@ export async function loadCase(): Promise<CaseRecord | null> {
     steps: steps.map((s) => ({ id: s.id, need: need.parse(s.need), status: status.parse(s.status), resourceId: s.resourceId })),
     events: events.map(({ id, timestamp, type, description }) => ({ id, timestamp, type, description })),
     evidence: Object.fromEntries(requirements.map((r) => [requirement.parse(r.requirement), r.verified])),
+    approvals: approvals.map((a) => ({
+      id: a.id,
+      stepId: a.stepId,
+      resourceId: a.resourceId,
+      need: need.parse(a.need),
+      script: a.script,
+      status: approvalStatus.parse(a.status),
+      outcome: a.outcome === null ? null : outcome.parse(a.outcome),
+      transcript: a.transcript,
+      createdAt: a.createdAt,
+      decidedAt: a.decidedAt,
+    })),
   };
 }
 

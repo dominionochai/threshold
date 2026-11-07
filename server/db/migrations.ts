@@ -20,4 +20,14 @@ export const migrations: MigrationEntry[] = [
           id TEXT PRIMARY KEY, household_id TEXT NOT NULL, requirement TEXT NOT NULL, verified BOOLEAN NOT NULL);
       `,
   },
+  {
+    version: 2,
+    name: "threshold-approvals",
+    sql: `
+        CREATE TABLE IF NOT EXISTS approvals (
+          id TEXT PRIMARY KEY, household_id TEXT NOT NULL, step_id TEXT NOT NULL, resource_id TEXT NOT NULL,
+          need TEXT NOT NULL, script JSONB NOT NULL, status TEXT NOT NULL, outcome TEXT, transcript JSONB,
+          created_at BIGINT NOT NULL, decided_at BIGINT);
+      `,
+  },
 ];

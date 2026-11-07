@@ -38,3 +38,18 @@ export const claimRequirements = pgTable("claim_requirements", {
   requirement: text("requirement").notNull(),
   verified: boolean("verified").notNull(),
 });
+
+/** A drafted outbound call. It stays pending until a person approves it, and keeps its outcome and transcript. */
+export const approvals = pgTable("approvals", {
+  id: text("id").primaryKey(),
+  householdId: text("household_id").notNull(),
+  stepId: text("step_id").notNull(),
+  resourceId: text("resource_id").notNull(),
+  need: text("need").notNull(),
+  script: jsonb("script").$type<string[]>().notNull(),
+  status: text("status").notNull(),
+  outcome: text("outcome"),
+  transcript: jsonb("transcript").$type<{ speaker: "assistant" | "facility"; text: string }[]>(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  decidedAt: bigint("decided_at", { mode: "number" }),
+});
