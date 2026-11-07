@@ -1,10 +1,10 @@
 import { defineAction } from "@agent-native/core/action";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { clerkPrompt, evidenceFor, NO_ANSWER, outcomeSchema, stepStatusFor, turnSchema } from "../shared/engine/call.js";
+import { clerkPrompt, evidenceFor, NO_ANSWER, outcomeSchema, stepStatusFor, transcriptText, turnSchema } from "../shared/engine/call.js";
 import { getDb, schema } from "../server/db/index.js";
 import { appendEvent, loadOpenCall } from "../server/lib/case.js";
-import { generateJson } from "../server/lib/gemini.js";
+import { attempt, generateJson } from "../server/lib/gemini.js";
 
 export default defineAction({
   description: "Close an open call from its transcript: read the outcome, set the step's status, and write the call and any claim evidence to the activity trail.",
@@ -17,7 +17,9 @@ export default defineAction({
     await db.update(schema.calls).set({ status: "completed", transcript: turns }).where(eq(schema.calls.id, callId));
 
     const heard = turns.some((t) => t.who === "shelter");
-    const outcome = heard ? await generateJson(clerkPrompt(resource), turns, outcomeSchema) : NO_ANSWER;
+    const read = heard ? await attempt(() => generateJson(clerkPrompt(resource), [{ who: "shelter", text: transcriptText(turns) }], outcomeSchema)) : NO_ANSWER;
+    if ("error" in read) return read;
+    const outcome = read;
     await db.update(schema.calls).set({ outcome }).where(eq(schema.calls.id, callId));
     await db.update(schema.steps).set({ status: stepStatusFor(outcome) }).where(and(eq(schema.steps.id, step.id), eq(schema.steps.householdId, household.id)));
 

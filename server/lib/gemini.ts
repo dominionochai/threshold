@@ -1,7 +1,7 @@
 import { resolveCredential } from "@agent-native/core/credentials";
 import { getRequestOrgId, getRequestUserEmail } from "@agent-native/core/server";
 import type { z } from "zod";
-import type { Turn } from "../../shared/engine/call.js";
+import { toContents, type Turn } from "../../shared/engine/call.js";
 import { wavFromPcm } from "./wav.js";
 
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -30,12 +30,9 @@ async function generate(model: string, body: object) {
 
 /** One JSON reply from the model, validated against `schema`. The agent speaks as "model". */
 export async function generateJson<T>(system: string, turns: readonly Turn[], schema: z.ZodType<T>): Promise<T> {
-  const contents = turns.length
-    ? turns.map((t) => ({ role: t.who === "agent" ? "model" : "user", parts: [{ text: t.text }] }))
-    : [{ role: "user", parts: [{ text: "(The line is picked up.)" }] }];
   const json = await generate(TEXT_MODEL, {
     systemInstruction: { parts: [{ text: system }] },
-    contents,
+    contents: toContents(turns),
     generationConfig: { responseMimeType: "application/json", temperature: 0.8 },
   });
   return schema.parse(JSON.parse(json.candidates?.[0]?.content?.parts?.[0]?.text ?? ""));
@@ -53,4 +50,15 @@ export async function synthesize(text: string): Promise<string> {
   const pcm = json.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   if (!pcm) throw new Error("The voice model returned no audio.");
   return wavFromPcm(pcm);
+}
+
+/** Model failures are reported to the phone in words, instead of the framework's blank "Internal server error". */
+export async function attempt<T>(work: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await work();
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    console.error("[threshold] call model failed:", error);
+    return { error };
+  }
 }

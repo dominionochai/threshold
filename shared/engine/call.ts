@@ -58,3 +58,15 @@ confirmed = they said the family can come or there is space. declined = they sai
 
 export const transcriptText = (turns: readonly Turn[]) =>
   turns.map((t) => `${t.who === "agent" ? "Assistant" : "Staff"}: ${t.text}`).join("\n");
+
+/** Gemini needs a conversation that starts with the user and alternates, so the caller's lines are "model". */
+export function toContents(turns: readonly Turn[]) {
+  const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [{ role: "user", parts: [{ text: "(The line is picked up.)" }] }];
+  for (const turn of turns) {
+    const role = turn.who === "agent" ? "model" : "user";
+    const last = contents[contents.length - 1];
+    if (last?.role === role) last.parts.push({ text: turn.text });
+    else contents.push({ role, parts: [{ text: turn.text }] });
+  }
+  return contents;
+}

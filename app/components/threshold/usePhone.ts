@@ -4,6 +4,12 @@ import type { Outcome, Turn } from "@shared/engine/call";
 import type { ActiveCall } from "@shared/engine/types";
 import { playWav, startRinging } from "./callAudio";
 
+/** Actions report model failures as `{ error }`; turn that back into a thrown, readable error. */
+function unwrap<T>(result: T | { error: string }): T {
+  if (result && typeof result === "object" && "error" in result) throw new Error(String(result.error));
+  return result;
+}
+
 export type Phase = "ringing" | "live" | "wrapping" | "done";
 
 /** Runs one call: the caller speaks, the person on the other end answers, and the call is closed into the case. */
@@ -34,7 +40,7 @@ export function usePhone(call: ActiveCall) {
 
   async function hangUp(final: Turn[]) {
     setPhase("wrapping");
-    const result = await finish.mutateAsync({ callId: call.id, turns: final });
+    const result = unwrap(await finish.mutateAsync({ callId: call.id, turns: final }));
     setOutcome(result.outcome);
     setPhase("done");
   }
@@ -43,8 +49,8 @@ export function usePhone(call: ActiveCall) {
     setError(null);
     try {
       setBusy("thinking");
-      const { say, endCall } = await nextLine.mutateAsync({ callId: call.id, turns: history });
-      const { audio } = await speak.mutateAsync({ text: say });
+      const { say, endCall } = unwrap(await nextLine.mutateAsync({ callId: call.id, turns: history }));
+      const { audio } = unwrap(await speak.mutateAsync({ text: say }));
       const next: Turn[] = [...history, { who: "agent", text: say }];
       setTurns(next);
       setBusy("speaking");

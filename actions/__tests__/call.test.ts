@@ -8,7 +8,7 @@ import createCase from "../create-case";
 import finishCall from "../finish-call";
 import placeCall from "../place-call";
 
-vi.mock("../../server/lib/gemini");
+vi.mock("../../server/lib/gemini", async (original) => ({ ...(await original<typeof gemini>()), generateJson: vi.fn(), synthesize: vi.fn() }));
 const generateJson = vi.mocked(gemini.generateJson);
 
 const talk = [
@@ -42,6 +42,12 @@ it("asks the model for the caller's next words", async () => {
   generateJson.mockResolvedValueOnce({ say: "Hello, I'm an assistant calling for a family.", endCall: false });
   const line = await callTurn.run({ callId: (await loadCase())!.activeCall!.id, turns: [] });
   expect(line.say).toContain("assistant");
+});
+
+it("reports a model failure in words instead of a blank server error", async () => {
+  generateJson.mockRejectedValueOnce(new Error("Gemini gemini-flash-latest failed (404): model not found"));
+  const result = await callTurn.run({ callId: (await loadCase())!.activeCall!.id, turns: [] });
+  expect(result).toEqual({ error: "Gemini gemini-flash-latest failed (404): model not found" });
 });
 
 it("finishes a confirmed bed: step confirmed, call logged, evidence linked to the call", async () => {

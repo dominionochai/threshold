@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callerPrompt, evidenceFor, stepStatusFor, transcriptText, type Outcome } from "../call";
+import { callerPrompt, evidenceFor, stepStatusFor, toContents, transcriptText, type Outcome } from "../call";
 import { household, resource } from "./fixtures";
 
 const outcome = (result: Outcome["result"]): Outcome => ({ result, summary: "s", instructions: [], spokeWith: null });
@@ -36,4 +36,23 @@ describe("callerPrompt", () => {
 
 it("renders a transcript with who said what", () => {
   expect(transcriptText([{ who: "agent", text: "Hi" }, { who: "shelter", text: "Hello" }])).toBe("Assistant: Hi\nStaff: Hello");
+});
+
+describe("toContents", () => {
+  const roles = (turns: Parameters<typeof toContents>[0]) => toContents(turns).map((c) => c.role);
+
+  it("always starts with the user, so the opening line is allowed", () => {
+    expect(roles([])).toEqual(["user"]);
+    expect(roles([{ who: "agent", text: "Hi" }])).toEqual(["user", "model"]);
+  });
+
+  it("alternates, and merges two lines from the same side", () => {
+    const merged = toContents([
+      { who: "agent", text: "Hi" },
+      { who: "shelter", text: "Hello" },
+      { who: "shelter", text: "Who is this?" },
+    ]);
+    expect(merged.map((c) => c.role)).toEqual(["user", "model", "user"]);
+    expect(merged[2]?.parts).toHaveLength(2);
+  });
 });
