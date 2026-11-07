@@ -1,34 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActiveCall } from "@shared/engine/types";
-import { canListen, listen } from "./callAudio";
+import { canListen } from "./callAudio";
 import { usePhone } from "./usePhone";
+import { useStaffSpeech } from "./useStaffSpeech";
 
 const button = "rounded-full px-5 py-3 font-semibold disabled:opacity-40";
 
 export function Phone({ call, location, onClose }: { call: ActiveCall; location: string; onClose: () => void }) {
   const phone = usePhone(call);
+  const [typing, setTyping] = useState(!canListen());
   const [typed, setTyped] = useState("");
-  const [heard, setHeard] = useState("");
-  const [listening, setListening] = useState(false);
-  const stopListening = useRef<(() => void) | null>(null);
   const log = useRef<HTMLDivElement>(null);
-  const ready = phone.phase === "live" && phone.busy === null;
+  const live = phone.phase === "live";
+  const hearing = live && phone.busy === null && !typing;
+  const { interim, micError } = useStaffSpeech(hearing, phone.staffSays);
 
-  useEffect(() => log.current?.scrollTo({ top: log.current.scrollHeight }), [phone.turns, phone.busy]);
+  useEffect(() => {
+    log.current?.scrollTo({ top: log.current.scrollHeight });
+  }, [phone.turns, phone.busy, interim]);
 
-  function toggleMic() {
-    if (listening) return stopListening.current?.();
-    setListening(true);
-    stopListening.current = listen({
-      onInterim: setHeard,
-      onFinal: (text) => {
-        setHeard("");
-        phone.staffSays(text);
-      },
-      onEnd: () => setListening(false),
-      onError: () => setListening(false),
-    });
-  }
+  const status = phone.busy === "thinking" ? "Thinking…" : phone.busy === "speaking" ? "Speaking…" : hearing ? "Listening. Speak as the staff member." : "";
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -46,37 +37,37 @@ export function Phone({ call, location, onClose }: { call: ActiveCall; location:
           </div>
         )}
 
-        {(phone.phase === "live" || phone.phase === "wrapping") && (
+        {(live || phone.phase === "wrapping") && (
           <>
             <div ref={log} className="flex-1 space-y-2 overflow-y-auto py-2">
               {phone.turns.map((turn, i) => (
                 <p key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${turn.who === "agent" ? "bg-zinc-800" : "ml-auto bg-amber-400 text-zinc-950"}`}>{turn.text}</p>
               ))}
-              {heard && <p className="ml-auto max-w-[85%] rounded-2xl bg-amber-400/40 px-3 py-2 text-sm">{heard}</p>}
-              {phone.busy === "thinking" && <p className="text-sm text-zinc-500">…</p>}
+              {interim && <p className="ml-auto max-w-[85%] rounded-2xl bg-amber-400/40 px-3 py-2 text-sm">{interim}</p>}
               {phone.phase === "wrapping" && <p className="text-sm text-zinc-400">Writing the call into the case…</p>}
             </div>
-            {phone.error && <p className="pb-2 text-sm text-rose-400">{phone.error}</p>}
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  className="min-w-0 flex-1 rounded-full bg-zinc-900 px-4 py-2 text-sm outline-none"
-                  placeholder="Type what you say as staff"
-                  value={typed}
-                  disabled={!ready}
-                  onChange={(e) => setTyped(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && typed.trim()) {
-                      phone.staffSays(typed.trim());
-                      setTyped("");
-                    }
-                  }}
-                />
-                {canListen() && (
-                  <button className={`${button} ${listening ? "bg-rose-500" : "bg-zinc-800"} py-2`} disabled={!ready} onClick={toggleMic}>{listening ? "Stop" : "Speak"}</button>
-                )}
-              </div>
-              <button className={`${button} w-full bg-rose-600`} disabled={phone.phase === "wrapping"} onClick={phone.hangUp}>End call</button>
+            <p className="pb-2 text-center text-sm text-zinc-400">{status}</p>
+            {(phone.error || micError) && <p className="pb-2 text-sm text-rose-400">{phone.error ?? `Microphone: ${micError}`}</p>}
+            {typing && (
+              <input
+                className="mb-3 rounded-full bg-zinc-900 px-4 py-2 text-sm outline-none"
+                placeholder="Type what the staff member says, then Enter"
+                value={typed}
+                disabled={phone.busy !== null}
+                onChange={(e) => setTyped(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && typed.trim()) {
+                    phone.staffSays(typed.trim());
+                    setTyped("");
+                  }
+                }}
+              />
+            )}
+            <div className="flex gap-2">
+              <button className={`${button} flex-1 bg-rose-600`} disabled={phone.phase === "wrapping"} onClick={phone.hangUp}>End call</button>
+              {canListen() && (
+                <button className="px-2 text-xs text-zinc-500 underline" onClick={() => setTyping((t) => !t)}>{typing ? "Use voice" : "Type instead"}</button>
+              )}
             </div>
           </>
         )}

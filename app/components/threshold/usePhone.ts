@@ -27,7 +27,9 @@ export function usePhone(call: ActiveCall) {
     } catch {
       // Some browsers hold audio until a tap; the Answer button still works.
     }
-    return () => stopRing.current?.();
+    return () => {
+      stopRing.current?.();
+    };
   }, []);
 
   async function hangUp(final: Turn[]) {

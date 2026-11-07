@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { findClaimGaps } from "@shared/engine/claim";
 import { CLAIM_REQUIREMENTS, STEP_STATUSES, type ActiveCall, type CaseRecord, type ClaimEvidenceKey } from "@shared/engine/types";
 import { Phone } from "./Phone";
+import { PhoneBoundary } from "./PhoneBoundary";
 import { ScoutList } from "./ScoutList";
 
 const panel = "rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-3";
@@ -35,7 +36,11 @@ export function CaseView({ record }: { record: CaseRecord }) {
 
   return (
     <main className="mx-auto min-h-full max-w-2xl space-y-4 bg-zinc-950 p-4 text-zinc-100">
-      {phoneCall && <Phone key={phoneCall.id} call={phoneCall} location={record.location} onClose={() => setPhoneCall(null)} />}
+      {phoneCall && (
+        <PhoneBoundary key={phoneCall.id} onClose={() => setPhoneCall(null)}>
+          <Phone call={phoneCall} location={record.location} onClose={() => setPhoneCall(null)} />
+        </PhoneBoundary>
+      )}
 
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{record.location}</h1>
