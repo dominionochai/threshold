@@ -10,6 +10,10 @@ export default defineConfig({
     },
   },
   test: {
+    // Each database test file boots its own in-memory Postgres, which is slow on a small machine.
+    hookTimeout: 90_000,
+    testTimeout: 30_000,
+    maxWorkers: 2,
     env: { DATABASE_URL: "pglite:memory" },
     exclude: [
       "**/node_modules/**",
