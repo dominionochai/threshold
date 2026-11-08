@@ -2,14 +2,12 @@ import { resolveCredential } from "@agent-native/core/credentials";
 import { getRequestOrgId, getRequestUserEmail } from "@agent-native/core/server";
 import type { z } from "zod";
 import { toContents, type Turn } from "../../shared/engine/call.js";
-import { wavFromPcm } from "./wav.js";
+import { DEFAULT_VOICE, synthesizeWith } from "./tts.js";
 
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
 const KEY_NAME = "GOOGLE_GENERATIVE_AI_API_KEY";
 const TEXT_MODEL = process.env.THRESHOLD_CALL_MODEL ?? "gemini-flash-latest";
-const VOICE_MODEL = process.env.THRESHOLD_VOICE_MODEL ?? "gemini-3.1-flash-tts-preview";
-const VOICE = process.env.THRESHOLD_VOICE ?? "Kore";
-const SPEAKING_STYLE = "Say this like a warm, steady person on a real phone call, natural pace, a little breath between phrases, never like an announcer";
+const SPEAKING_STYLE = "warm and steady, with a little breath between phrases";
 
 async function apiKey(): Promise<string> {
   const stored = await resolveCredential(KEY_NAME, { userEmail: getRequestUserEmail() ?? "", orgId: getRequestOrgId() ?? null });
@@ -40,16 +38,7 @@ export async function generateJson<T>(system: string, turns: readonly Turn[], sc
 
 /** Speech as a base64 WAV. */
 export async function synthesize(text: string): Promise<string> {
-  const json = await generate(VOICE_MODEL, {
-    contents: [{ parts: [{ text: `${SPEAKING_STYLE}: ${text}` }] }],
-    generationConfig: {
-      responseModalities: ["AUDIO"],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE } } },
-    },
-  });
-  const pcm = json.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!pcm) throw new Error("The voice model returned no audio.");
-  return wavFromPcm(pcm);
+  return synthesizeWith(await apiKey(), text, SPEAKING_STYLE, DEFAULT_VOICE);
 }
 
 /** Model failures are reported to the phone in words, instead of the framework's blank "Internal server error". */

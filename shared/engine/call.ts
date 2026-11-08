@@ -71,26 +71,6 @@ export function toContents(turns: readonly Turn[]) {
   return contents;
 }
 
-const NEED_PHRASE: Record<Need, string> = {
-  bed: "a place to sleep tonight",
-  food: "a meal",
-  medical: "medical care",
-  legal: "legal help",
-};
-
-/** The demo call: fixed caller lines, filled in from the case. The other end still answers freely. */
-export function scriptedLines(household: Household, resource: Resource, need: Need): string[] {
-  const kids = household.children.length;
-  const who = `${kids} ${kids === 1 ? "child" : "children"}${kids ? `, ages ${household.children.join(" and ")}` : ""}`;
-  return [
-    `Hello, this is Threshold's assistant. I'm calling for a family. Is this ${resource.name}?`,
-    `Thank you. I'm calling for a mother in ${household.location} with ${who}. She needs ${NEED_PHRASE[need]}. Can you take the family tonight?`,
-    "I understand. Where should she go, and by what time?",
-    "Is there anything she needs to bring, or anyone to ask for?",
-    "Thank you, that helps a lot. I'll let her know right away. Goodbye.",
-  ];
-}
-
 /** The caller's next scripted line, given how many lines it has already spoken. */
 export function scriptedStep(lines: readonly string[], turns: readonly Turn[]) {
   const spoken = turns.filter((t) => t.who === "agent").length;

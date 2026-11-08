@@ -19,9 +19,6 @@ Data rule: nothing is invented. Records confirmed against an official source car
 
 ## Demo: two tabs
 
-1. Add `THRESHOLD_CALL_MODE=script` to `.env` (scripted is also the default; `live` uses the model).
-2. Tab 1, `/home`: the app. Run intake, then tap **Have Threshold call** and approve.
-3. Tab 2, `/staff`: the shelter's phone. It rings; press **Answer**, then reply by voice as the staff member.
-4. Tab 1 follows the call live. When it ends, the step, the trail and the claim evidence update.
+Tab 1 (`/home`) is the app. Tab 2 (`/staff`) is the shelter's phone: it rings, plays the caller's pre-recorded voice, and listens for you to answer. The full script, your lines, and setup are in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Record the voice once with `pnpm demo:voice`.
 
-The caller's lines are fixed and filled in from the case, and the outcome is read from what staff said without a model. Everything else (Scout, approvals, evidence link) is the real app.
+Set `THRESHOLD_CALL_MODE=live` for a model-driven caller with a transcript instead.

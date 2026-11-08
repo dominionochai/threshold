@@ -1,7 +1,8 @@
 import { defineAction } from "@agent-native/core/action";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { callerPrompt, lineSchema, scriptedLines, scriptedStep, turnSchema } from "../shared/engine/call.js";
+import { callerPrompt, lineSchema, scriptedStep, turnSchema } from "../shared/engine/call.js";
+import { DEMO_CALL } from "../shared/demo/call-script.js";
 import { getDb, schema } from "../server/db/index.js";
 import { isScripted } from "../server/lib/call-mode.js";
 import { loadOpenCall } from "../server/lib/case.js";
@@ -17,7 +18,7 @@ export default defineAction({
     await db.update(schema.calls).set({ status: "live", transcript: turns }).where(eq(schema.calls.id, callId));
 
     const line = isScripted()
-      ? scriptedStep(scriptedLines(household, resource, step.need), turns)
+      ? scriptedStep(DEMO_CALL.agent.map((l) => l.text), turns)
       : await attempt(() => generateJson(callerPrompt(household, resource, step.need), turns, lineSchema));
     if ("error" in line) return line;
 

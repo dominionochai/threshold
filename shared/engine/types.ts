@@ -61,6 +61,8 @@ export interface ActiveCall {
   resourceName: string;
   status: "ringing" | "live";
   turns: Turn[];
+  /** The demo call: pre-recorded caller, staff lines read from the script. */
+  scripted: boolean;
 }
 
 export interface CaseRecord extends Household {

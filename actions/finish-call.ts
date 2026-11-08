@@ -25,7 +25,7 @@ export default defineAction({
     await db.update(schema.steps).set({ status: stepStatusFor(outcome) }).where(and(eq(schema.steps.id, step.id), eq(schema.steps.householdId, household.id)));
 
     const todo = outcome.instructions.length ? ` To do: ${outcome.instructions.join("; ")}.` : "";
-    const callEvent = await appendEvent(household.id, "CALL_COMPLETED", `${resource.name}${outcome.spokeWith ? ` (${outcome.spokeWith})` : ""}: ${outcome.summary}${todo}`);
+    const callEvent = await appendEvent(household.id, "CALL_COMPLETED", `${resource.name}${outcome.spokeWith ? ` (${outcome.spokeWith})` : ""}: ${outcome.summary}${todo}${isScripted() ? " (scripted demo call)" : ""}`);
 
     const requirement = evidenceFor(step.need, outcome);
     if (requirement) {

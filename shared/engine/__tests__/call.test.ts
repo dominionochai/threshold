@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callerPrompt, evidenceFor, outcomeFromStaff, scriptedLines, scriptedStep, stepStatusFor, toContents, transcriptText, type Outcome, type Turn } from "../call";
+import { callerPrompt, evidenceFor, outcomeFromStaff, scriptedStep, stepStatusFor, toContents, transcriptText, type Outcome, type Turn } from "../call";
 import { household, resource } from "./fixtures";
 
 const outcome = (result: Outcome["result"]): Outcome => ({ result, summary: "s", instructions: [], spokeWith: null });
@@ -58,14 +58,7 @@ describe("toContents", () => {
 });
 
 describe("scripted call", () => {
-  const lines = scriptedLines(household, resource({ name: "PATH" }), "bed");
-
-  it("fills the script from the case and ends with a goodbye", () => {
-    expect(lines[0]).toContain("PATH");
-    expect(lines[1]).toContain("ages 4 and 7");
-    expect(lines[1]).toContain("a place to sleep tonight");
-    expect(lines[lines.length - 1]).toContain("Goodbye");
-  });
+  const lines = ["one", "two", "three"];
 
   it("advances one line per caller turn and ends the call on the last", () => {
     const turns: Turn[] = [];

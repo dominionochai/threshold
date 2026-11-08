@@ -5,6 +5,7 @@
   "description": "One case record for tonight and the SNAP claim that follows.",
   "type": "module",
   "scripts": {
+    "demo:voice": "tsx scripts/build-demo-voice.ts",
     "migrate:production": "tsx scripts/migrate-production.ts",
     "dev": "agent-native dev --open",
     "build": "agent-native build",

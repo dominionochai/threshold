@@ -4,6 +4,7 @@ import { turnSchema } from "../../shared/engine/call.js";
 import { NEEDS, STEP_STATUSES, CLAIM_REQUIREMENTS, type CaseRecord } from "../../shared/engine/types.js";
 import { resources } from "../../shared/data/resources.js";
 import { getDb, schema } from "../db/index.js";
+import { isScripted } from "./call-mode.js";
 
 const need = z.enum(NEEDS);
 const status = z.enum(STEP_STATUSES);
@@ -41,7 +42,7 @@ export async function loadCase(): Promise<CaseRecord | null> {
     evidence: Object.fromEntries(requirements.map((r) => [requirement.parse(r.requirement), r.verified])),
     evidenceLinks: Object.fromEntries(requirements.flatMap((r) => (r.eventId ? [[requirement.parse(r.requirement), r.eventId]] : []))),
     activeCall: ringing
-      ? { id: ringing.id, stepId: ringing.stepId, resourceId: ringing.resourceId, resourceName: resources.find((r) => r.id === ringing.resourceId)?.name ?? ringing.resourceId, status: callStatus.parse(ringing.status), turns: turns.parse(ringing.transcript) }
+      ? { id: ringing.id, stepId: ringing.stepId, resourceId: ringing.resourceId, resourceName: resources.find((r) => r.id === ringing.resourceId)?.name ?? ringing.resourceId, status: callStatus.parse(ringing.status), turns: turns.parse(ringing.transcript), scripted: isScripted() }
       : null,
   };
 }

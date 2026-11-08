@@ -1,3 +1,5 @@
+import { createTurnDetector } from "@shared/engine/turn-detector";
+
 /** Browser audio for the phone: a ring tone, playing the caller's voice, and listening to the staff member. */
 
 export function startRinging(): () => void {
@@ -29,6 +31,68 @@ export function playWav(base64: string): Promise<void> {
     audio.onended = () => resolve();
     audio.onerror = () => reject(new Error("The voice could not be played."));
     void audio.play().catch(reject);
+  });
+}
+
+/** Load every clip up front so each one plays the instant it is due. */
+export function preloadClips(urls: readonly string[]): Promise<Map<string, HTMLAudioElement>> {
+  return Promise.all(
+    urls.map(
+      (url) =>
+        new Promise<[string, HTMLAudioElement]>((resolve, reject) => {
+          const audio = new Audio(url);
+          audio.preload = "auto";
+          audio.oncanplaythrough = () => resolve([url, audio]);
+          audio.onerror = () => reject(new Error(`Missing voice file: ${url}`));
+          audio.load();
+        }),
+    ),
+  ).then((pairs) => new Map(pairs));
+}
+
+export function playClip(audio: HTMLAudioElement | undefined): Promise<void> {
+  if (!audio) return Promise.resolve();
+  audio.currentTime = 0;
+  return new Promise((resolve) => {
+    audio.onended = () => resolve();
+    audio.onpause = () => resolve();
+    void audio.play().catch(() => resolve());
+  });
+}
+
+/**
+ * Resolves when the person on this end has said something and stopped. It only measures
+ * loudness (nothing is transcribed). Space or Enter moves on at once, and it never waits forever.
+ */
+export function waitForTurn(stream: MediaStream | null, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const STEP_MS = 50;
+    const context = stream ? new AudioContext() : null;
+    const analyser = context?.createAnalyser();
+    if (context && analyser && stream) context.createMediaStreamSource(stream).connect(analyser);
+    const samples = new Float32Array(analyser?.fftSize ?? 0);
+    const finished = createTurnDetector();
+
+    const done = () => {
+      clearInterval(timer);
+      clearTimeout(giveUp);
+      window.removeEventListener("keydown", onKey);
+      signal.removeEventListener("abort", done);
+      void context?.close();
+      resolve();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space" || e.key === "Enter") done();
+    };
+    const timer = setInterval(() => {
+      if (!analyser) return;
+      analyser.getFloatTimeDomainData(samples);
+      const level = Math.sqrt(samples.reduce((sum, v) => sum + v * v, 0) / samples.length);
+      if (finished(level, STEP_MS)) done();
+    }, STEP_MS);
+    const giveUp = setTimeout(done, stream ? 15000 : 6000);
+    window.addEventListener("keydown", onKey);
+    signal.addEventListener("abort", done);
   });
 }
 

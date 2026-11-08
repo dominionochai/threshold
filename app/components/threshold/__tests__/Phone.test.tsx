@@ -18,7 +18,7 @@ vi.mock("../callAudio", () => ({
 }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-const call = { id: "call-1", stepId: "step-1", resourceId: "dhs-path", resourceName: "PATH", status: "ringing" as const, turns: [] };
+const call = { id: "call-1", stepId: "step-1", resourceId: "dhs-path", resourceName: "PATH", status: "ringing" as const, turns: [], scripted: false };
 
 beforeEach(() => {
   mutateAsync.mockReset();
