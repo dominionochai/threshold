@@ -1,97 +1,69 @@
-import { z } from "zod";
+import { openness } from "./hours";
 import type { Resource } from "./resource";
-import type { ClaimEvidenceKey, Household, Need, StepStatus, Turn } from "./types";
+import { NEED_LABEL, type CallOutcome, type Household, type Need, type TranscriptLine } from "./types";
 
-export type { Turn };
+const NEED_PHRASE: Record<Need, string> = { food: "food", bed: "a bed", medical: "medical care", legal: "legal help" };
 
-export const turnSchema = z.object({ who: z.enum(["agent", "shelter"]), text: z.string().max(1000) });
-export const lineSchema = z.object({ say: z.string().min(1), endCall: z.boolean() });
+function listAges(ages: readonly number[]): string {
+  const sorted = [...ages].sort((a, b) => a - b).map(String);
+  return sorted.length > 1 ? `${sorted.slice(0, -1).join(", ")} and ${sorted[sorted.length - 1]}` : (sorted[0] ?? "");
+}
 
-export const outcomeSchema = z.object({
-  result: z.enum(["confirmed", "declined", "callback", "unclear"]),
-  summary: z.string(),
-  instructions: z.array(z.string()),
-  spokeWith: z.string().nullable(),
-});
-export type Outcome = z.infer<typeof outcomeSchema>;
+/** The words the assistant would say. It says it is an assistant, and the parent sees every line before anything happens. */
+export function draftCall(household: Household, need: Need): string[] {
+  const kids = household.children.length;
+  const children = kids === 0 ? "" : `, and there ${kids === 1 ? "is 1 child" : `are ${kids} children`} with them, age${kids === 1 ? "" : "s"} ${listAges(household.children)}`;
+  return [
+    `Hello, this is an assistant calling for a family in ${household.location}. The parent asked me to call and has approved this call.`,
+    `They need ${NEED_PHRASE[need]} tonight${children}.`,
+    "Are you open right now, and can you take them?",
+    "Where exactly should they go, and is there anything they need to bring?",
+    "Thank you. I'll tell the parent right away.",
+  ];
+}
 
-export const NO_ANSWER: Outcome = {
-  result: "unclear",
-  summary: "The call ended before anyone at the other end said anything.",
-  instructions: [],
-  spokeWith: null,
-};
-
-const STEP_STATUS: Record<Outcome["result"], StepStatus> = {
-  confirmed: "confirmed",
-  declined: "declined",
-  callback: "waiting",
-  unclear: "waiting",
-};
-
-export const stepStatusFor = (outcome: Outcome): StepStatus => STEP_STATUS[outcome.result];
+export interface CallResult {
+  outcome: CallOutcome;
+  reason: string;
+  transcript: TranscriptLine[];
+}
 
 /**
- * A confirmed bed is staff stating the family's shelter status. That supports the SNAP
- * residence requirement, but a document is still needed, so it is linked, not verified.
+ * A rehearsed call. No phone call is placed and no facility is contacted.
+ * The facility's side is built only from what the sourced record says: its address and its note.
+ * `demo` forces the answer so a decline can be shown on demand.
  */
-export const evidenceFor = (need: Need, outcome: Outcome): ClaimEvidenceKey | null =>
-  need === "bed" && outcome.result === "confirmed" ? "residenceProof" : null;
+export function simulateCall(resource: Resource, script: readonly string[], at: Date, demo?: "accepts" | "declines"): CallResult {
+  const status = openness(resource.hours, at).status;
+  const accepts = demo ? demo === "accepts" : status === "open";
+  const reason = demo
+    ? accepts ? "Demo: they accepted." : "Demo: they said no."
+    : status === "open" ? "Open now." : status === "closed" ? "Closed now." : "No hours on file, so we could not confirm anyone is answering.";
 
-export function callerPrompt(household: Household, resource: Resource, need: Need): string {
-  const kids = household.children.length;
-  return `You are Threshold's assistant, on the phone with ${resource.name} (${resource.address}), calling for a mother in ${household.location}, New York City. You are not the mother. Say plainly, early on, that you are an assistant calling for a family.
+  const lines = script.map((l) => l.trim()).filter(Boolean);
+  const closing = lines.length > 1 ? lines.pop() : undefined;
+  const followUp = lines.length > 2 ? lines.pop() : undefined;
+  const say = (text: string): TranscriptLine => ({ speaker: "assistant", text });
+  const reply = (text: string): TranscriptLine => ({ speaker: "facility", text });
 
-What you know and may share: she has ${kids} ${kids === 1 ? "child" : "children"}${kids ? `, ages ${household.children.join(" and ")}` : ""}, and tonight she needs ${need}. Nothing else. Never invent or volunteer anything about her: name, ID, income, immigration status, why she is in this situation. If you are asked for something you do not have, say you will check with her and ask exactly what they need from her.
-
-Find out, one question at a time: can they take the family tonight, where exactly to go and by what time, what she must bring, who to ask for, whether there is a wait. If they say no, ask once where they would send a family tonight, then thank them.
-
-Talk the way a calm, kind person talks on the phone: short sentences, plain words, contractions. React to what they actually say, including when they are rushed, interrupt, or ask you to repeat. Never use lists, markdown or stage directions.
-
-Reply only with JSON: {"say": "<your next words>", "endCall": <true or false>}. Set endCall true only on the turn where you say goodbye.`;
-}
-
-export const clerkPrompt = (resource: Resource) =>
-  `Read this phone call between Threshold's assistant and staff at ${resource.name}. Report only what was actually said; infer nothing.
-Reply only with JSON: {"result": "confirmed" | "declined" | "callback" | "unclear", "summary": "<one or two plain sentences>", "instructions": ["<each thing the family must bring or do, as stated>"], "spokeWith": "<name or role if stated, else null>"}.
-confirmed = they said the family can come or there is space. declined = they said no. callback = they said to call back or wait. unclear = anything else.`;
-
-export const transcriptText = (turns: readonly Turn[]) =>
-  turns.map((t) => `${t.who === "agent" ? "Assistant" : "Staff"}: ${t.text}`).join("\n");
-
-/** Gemini needs a conversation that starts with the user and alternates, so the caller's lines are "model". */
-export function toContents(turns: readonly Turn[]) {
-  const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [{ role: "user", parts: [{ text: "(The line is picked up.)" }] }];
-  for (const turn of turns) {
-    const role = turn.who === "agent" ? "model" : "user";
-    const last = contents[contents.length - 1];
-    if (last?.role === role) last.parts.push({ text: turn.text });
-    else contents.push({ role, parts: [{ text: turn.text }] });
+  const transcript: TranscriptLine[] = lines.map(say);
+  if (accepts) {
+    transcript.push(reply("Yes, we're open."));
+    if (followUp) transcript.push(say(followUp));
+    transcript.push(reply(`Come to ${resource.address}.${resource.note ? ` ${resource.note}` : ""}`));
+  } else {
+    transcript.push(reply(status === "closed" && !demo ? "No, we're closed right now." : "I'm sorry, we can't take them right now."));
   }
-  return contents;
+  if (closing) transcript.push(say(closing));
+  return { outcome: accepts ? "confirmed" : "declined", reason, transcript };
 }
 
-/** The caller's next scripted line, given how many lines it has already spoken. */
-export function scriptedStep(lines: readonly string[], turns: readonly Turn[]) {
-  const spoken = turns.filter((t) => t.who === "agent").length;
-  const index = Math.min(spoken, lines.length - 1);
-  return { say: lines[index] ?? "", endCall: index === lines.length - 1 };
-}
-
-const REFUSAL = /\b(no space|no beds?|no room|we(?:'re| are) full|can(?:no|')t|unable|not able|full tonight)\b/i;
-const WELCOME = /\b(yes|yeah|sure|we can|we do|we have|come in|bring (?:them|her|the family)|have (?:a )?(?:room|space|bed)|available)\b/i;
-const TO_DO = /\b(bring|before|by \d|arrive|ask for|id)\b/i;
-
-/** Reads what staff said without a model, so the scripted demo never depends on one. */
-export function outcomeFromStaff(turns: readonly Turn[], placeName: string): Outcome {
-  const said = turns.filter((t) => t.who === "shelter").map((t) => t.text);
-  if (said.length === 0) return NO_ANSWER;
-  const all = said.join(" ");
-  const refused = REFUSAL.test(all);
-  const welcomed = WELCOME.test(all);
-  const result = welcomed && !refused ? "confirmed" : refused && !welcomed ? "declined" : "unclear";
-  const instructions = said.flatMap((line) => line.split(/(?<=[.!?])\s+/)).filter((sentence) => TO_DO.test(sentence)).map((sentence) => sentence.replace(/[.!?]+$/, "").trim()).slice(0, 3);
-  const summary =
-    result === "confirmed" ? `${placeName} said they can take the family tonight.` : result === "declined" ? `${placeName} said they cannot take the family tonight.` : `${placeName} did not clearly say yes or no.`;
-  return { result, summary, instructions: result === "confirmed" ? instructions : [], spokeWith: null };
+/** What to say when no sourced place is left. Honest and short: the city line, plus 911 for a medical emergency. */
+export function cityHelp(household: Pick<Household, "children" | "location">, need: Need): string {
+  if (need === "bed") {
+    const who = household.children.length > 0 ? "a family with children who need shelter tonight" : "someone who needs shelter tonight";
+    return `Call 311 and say you're ${who}.`;
+  }
+  if (need === "medical") return `If it's an emergency, call 911. Otherwise call 311 and ask for medical care near ${household.location}.`;
+  return `Call 311 and ask for ${NEED_LABEL[need].toLowerCase()} near ${household.location}.`;
 }

@@ -11,11 +11,11 @@ The caller's voice is recorded ahead of time, so every line plays the instant it
 
 ## The intake (tab 1, `/home`)
 
-Tap exactly: **Harlem**, child age **2**, child age **2**, **A place to sleep**, then **Find what's open**. On PATH, tap **Have Threshold call** and **Approve and call**.
+Say or type: "I'm in Harlem with my two kids, they're 2 and 2, and we have nowhere to sleep tonight." Confirm Harlem, ages 2 and 2, and a place to sleep. When Caller offers to call PATH, open the call sheet, read what it will say, and tap **Yes, make this call**. (The audio is recorded for exactly this case.)
 
 ## The call (tab 2, `/staff`)
 
-The phone rings. Tap **Accept**. Speak naturally at a normal pace. Each of your lines takes about three seconds. After you stop speaking, it pauses a beat and answers.
+Tab 1 now says Caller is calling, and the phone in tab 2 rings. Tap **Accept**. Speak naturally at a normal pace. Each of your lines takes about three seconds. After you stop speaking, it pauses a beat and answers.
 
 | # | The caller says | You say |
 |---|---|---|

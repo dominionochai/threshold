@@ -30,7 +30,7 @@ describe("scout", () => {
   });
 
   it("explains each result in plain words", () => {
-    const [result] = rank(resource({ hours: { wed: [["09:00", "21:00"]] }, verifiedAt: null }));
-    expect(result?.reasons).toEqual(["Open until 9:00 PM", "Takes ages 4, 7", "0.0 mi", "Unverified"]);
+    const [result] = rank(resource({ hours: { wed: [["09:00", "21:00"]] }, verifiedAt: null, conflict: "two phone numbers" }));
+    expect(result?.reasons).toEqual(["Open until 9:00 PM", "Takes ages 4, 7", "0.0 mi", "Unverified", "Sources conflict: two phone numbers"]);
   });
 });

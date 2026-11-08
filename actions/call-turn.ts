@@ -1,7 +1,7 @@
 import { defineAction } from "@agent-native/core/action";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { callerPrompt, lineSchema, scriptedStep, turnSchema } from "../shared/engine/call.js";
+import { callerPrompt, lineSchema, scriptedStep, turnSchema } from "../shared/engine/conversation.js";
 import { DEMO_CALL } from "../shared/demo/call-script.js";
 import { getDb, schema } from "../server/db/index.js";
 import { isScripted } from "../server/lib/call-mode.js";

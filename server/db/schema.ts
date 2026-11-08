@@ -37,8 +37,6 @@ export const claimRequirements = pgTable("claim_requirements", {
   householdId: text("household_id").notNull(),
   requirement: text("requirement").notNull(),
   verified: boolean("verified").notNull(),
-  /** The event (a call) that supports this requirement without proving it. */
-  eventId: text("event_id"),
 });
 
 export const calls = pgTable("calls", {
@@ -49,5 +47,22 @@ export const calls = pgTable("calls", {
   status: text("status").notNull(),
   transcript: jsonb("transcript").$type<{ who: string; text: string }[]>().notNull(),
   outcome: jsonb("outcome"),
+  /** The parent's yes that placed this call. */
+  approvalId: text("approval_id"),
   startedAt: bigint("started_at", { mode: "number" }).notNull(),
+});
+
+/** A drafted outbound call. It stays pending until a person approves it, and keeps its outcome and transcript. */
+export const approvals = pgTable("approvals", {
+  id: text("id").primaryKey(),
+  householdId: text("household_id").notNull(),
+  stepId: text("step_id").notNull(),
+  resourceId: text("resource_id").notNull(),
+  need: text("need").notNull(),
+  script: jsonb("script").$type<string[]>().notNull(),
+  status: text("status").notNull(),
+  outcome: text("outcome"),
+  transcript: jsonb("transcript").$type<{ speaker: "assistant" | "facility"; text: string }[]>(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  decidedAt: bigint("decided_at", { mode: "number" }),
 });

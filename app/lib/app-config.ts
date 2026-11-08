@@ -1,4 +1,4 @@
-const rawAppName = "demo";
+const rawAppName = "threshold";
 const rawAppTitle = "Threshold";
 
 const APP_NAME_PLACEHOLDER = "{" + "{APP_NAME}}";

@@ -1,18 +1,19 @@
 import { defineAction } from "@agent-native/core/action";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { clerkPrompt, evidenceFor, NO_ANSWER, outcomeFromStaff, outcomeSchema, stepStatusFor, transcriptText, turnSchema } from "../shared/engine/call.js";
+import { clerkPrompt, NO_ANSWER, outcomeFromStaff, outcomeSchema, transcriptText, turnSchema } from "../shared/engine/conversation.js";
 import { getDb, schema } from "../server/db/index.js";
+import { recordCallResult } from "../server/lib/call-loop.js";
 import { isScripted } from "../server/lib/call-mode.js";
-import { appendEvent, loadOpenCall } from "../server/lib/case.js";
+import { loadOpenCall } from "../server/lib/case.js";
 import { attempt, generateJson } from "../server/lib/gemini.js";
 
 export default defineAction({
-  description: "Close an open call from its transcript: read the outcome, set the step's status, and write the call and any claim evidence to the activity trail.",
+  description: "Close an open call from its transcript: read the outcome, then update the approval, the step and the activity trail. Used by the staff line.",
   schema: z.object({ callId: z.string(), turns: z.array(turnSchema).max(60) }),
   agentTool: false,
   run: async ({ callId, turns }) => {
-    const { resource, household, step } = await loadOpenCall(callId);
+    const { call, resource, household, step } = await loadOpenCall(callId);
     const db = getDb();
     // Save the transcript and close the call first, so a failed read of the outcome never loses the call.
     await db.update(schema.calls).set({ status: "completed", transcript: turns }).where(eq(schema.calls.id, callId));
@@ -20,21 +21,9 @@ export default defineAction({
     const heard = turns.some((t) => t.who === "shelter");
     const read = !heard ? NO_ANSWER : isScripted() ? outcomeFromStaff(turns, resource.name) : await attempt(() => generateJson(clerkPrompt(resource), [{ who: "shelter", text: transcriptText(turns) }], outcomeSchema));
     if ("error" in read) return read;
-    const outcome = read;
-    await db.update(schema.calls).set({ outcome }).where(eq(schema.calls.id, callId));
-    await db.update(schema.steps).set({ status: stepStatusFor(outcome) }).where(and(eq(schema.steps.id, step.id), eq(schema.steps.householdId, household.id)));
 
-    const todo = outcome.instructions.length ? ` To do: ${outcome.instructions.join("; ")}.` : "";
-    const callEvent = await appendEvent(household.id, "CALL_COMPLETED", `${resource.name}${outcome.spokeWith ? ` (${outcome.spokeWith})` : ""}: ${outcome.summary}${todo}${isScripted() ? " (scripted demo call)" : ""}`);
-
-    const requirement = evidenceFor(step.need, outcome);
-    if (requirement) {
-      await db
-        .insert(schema.claimRequirements)
-        .values({ id: `req-${requirement}-${household.id}`, householdId: household.id, requirement, verified: false, eventId: callEvent.id })
-        .onConflictDoUpdate({ target: schema.claimRequirements.id, set: { eventId: callEvent.id } });
-      await appendEvent(household.id, "EVIDENCE_LINKED", `The call with ${resource.name} supports '${requirement}'. Staff stated the family's shelter status; a document is still needed.`);
-    }
-    return { outcome, linkedRequirement: requirement };
+    await db.update(schema.calls).set({ outcome: read }).where(eq(schema.calls.id, callId));
+    await recordCallResult(household, call, resource, step, read, turns);
+    return { outcome: read };
   },
 });

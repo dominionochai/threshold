@@ -30,4 +30,19 @@ export const migrations: MigrationEntry[] = [
       ALTER TABLE claim_requirements ADD COLUMN IF NOT EXISTS event_id TEXT;
     `,
   },
+  {
+    version: 3,
+    name: "threshold-approvals",
+    sql: `
+      CREATE TABLE IF NOT EXISTS approvals (
+        id TEXT PRIMARY KEY, household_id TEXT NOT NULL, step_id TEXT NOT NULL, resource_id TEXT NOT NULL,
+        need TEXT NOT NULL, script JSONB NOT NULL, status TEXT NOT NULL, outcome TEXT, transcript JSONB,
+        created_at BIGINT NOT NULL, decided_at BIGINT);
+    `,
+  },
+  {
+    version: 4,
+    name: "threshold-call-approval-link",
+    sql: `ALTER TABLE calls ADD COLUMN IF NOT EXISTS approval_id TEXT;`,
+  },
 ];

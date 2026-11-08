@@ -1,6 +1,6 @@
 import { useActionMutation } from "@agent-native/core/client/hooks";
 import { useEffect, useRef, useState } from "react";
-import type { Outcome } from "@shared/engine/call";
+import type { Outcome } from "@shared/engine/conversation";
 import type { ActiveCall, Turn } from "@shared/engine/types";
 import { playWav, speakInBrowser, startRinging } from "./callAudio";
 

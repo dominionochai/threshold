@@ -1,7 +1,7 @@
 import { resolveCredential } from "@agent-native/core/credentials";
 import { getRequestOrgId, getRequestUserEmail } from "@agent-native/core/server";
 import type { z } from "zod";
-import { toContents, type Turn } from "../../shared/engine/call.js";
+import { toContents, type Turn } from "../../shared/engine/conversation.js";
 import { DEFAULT_VOICE, synthesizeWith } from "./tts.js";
 
 const API = "https://generativelanguage.googleapis.com/v1beta/models";

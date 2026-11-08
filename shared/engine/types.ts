@@ -65,11 +65,41 @@ export interface ActiveCall {
   scripted: boolean;
 }
 
+export const APPROVAL_STATUSES = ["pending", "approved", "declined"] as const;
+export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
+
+export type CallOutcome = "confirmed" | "declined";
+
+export interface TranscriptLine {
+  speaker: "assistant" | "facility";
+  text: string;
+}
+
+/** A drafted outbound call. Nothing is placed until a person approves it. */
+export interface Approval {
+  id: string;
+  stepId: string;
+  resourceId: string;
+  need: Need;
+  script: string[];
+  status: ApprovalStatus;
+  outcome: CallOutcome | null;
+  transcript: TranscriptLine[] | null;
+  createdAt: number;
+  decidedAt: number | null;
+}
+
 export interface CaseRecord extends Household {
   evidence: ClaimEvidence;
-  /** The call (event) that supports a requirement without yet proving it. */
-  evidenceLinks: Partial<Record<ClaimEvidenceKey, string>>;
   activeCall: ActiveCall | null;
   steps: CaseStep[];
   events: CaseEvent[];
+  approvals: Approval[];
 }
+
+export const NEED_LABEL: Record<Need, string> = {
+  food: "Food tonight",
+  bed: "A place to sleep",
+  medical: "Medical care",
+  legal: "Legal help",
+};

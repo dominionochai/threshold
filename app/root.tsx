@@ -25,13 +25,7 @@ import { Layout as AppLayout } from "@/components/layout/Layout";
 import { AppToolkitProvider } from "@/components/ui/toolkit-provider";
 import { useNavigationState } from "@/hooks/use-navigation-state";
 import { APP_TITLE } from "@/lib/app-config";
-import {
-  HOME_PATH,
-  isChatPathname,
-  NEW_CHAT_PATH,
-  skeletonLayoutForPath,
-  threadIdFromPath,
-} from "@/lib/chat-paths";
+import { HOME_PATH, skeletonLayoutForPath } from "@/lib/chat-paths";
 import { TAB_ID } from "@/lib/tab-id";
 
 import { i18nCatalog } from "./i18n";
@@ -41,8 +35,8 @@ import stylesheet from "./global.css?url";
 configureTracking({
   getDefaultProps: (_name, properties) => ({
     ...properties,
-    app: "demo",
-    template: "chat",
+    app: "threshold",
+    template: "threshold",
   }),
 });
 
@@ -71,7 +65,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }}
         />
-        <meta name="theme-color" content="#18181B" />
+        <meta name="theme-color" content="#0E0D0C" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
@@ -121,7 +115,6 @@ function AppContent() {
   const navigate = useNavigate();
   const t = useT();
   const location = useLocation();
-  const isChatThread = threadIdFromPath(location.pathname) !== null;
   useCommandMenuShortcut(useCallback(() => setCmdkOpen(true), []));
   return (
     <>
@@ -131,23 +124,9 @@ function AppContent() {
         chatStorageKey="chat"
       >
         <CommandMenu.Group heading={t("root.commandActions")}>
-          {isChatThread ? (
-            <CommandMenu.Item
-              onSelect={() =>
-                window.dispatchEvent(new Event("agent-chat:new-chat"))
-              }
-            >
-              {t("chat.newChat")}
-            </CommandMenu.Item>
-          ) : null}
           {location.pathname !== HOME_PATH ? (
             <CommandMenu.Item onSelect={() => navigate(HOME_PATH)}>
               {t("navigation.home")}
-            </CommandMenu.Item>
-          ) : null}
-          {!isChatPathname(location.pathname) ? (
-            <CommandMenu.Item onSelect={() => navigate(NEW_CHAT_PATH)}>
-              {t("navigation.chat")}
             </CommandMenu.Item>
           ) : null}
           <CommandMenu.Item
@@ -168,9 +147,14 @@ function AppContent() {
           <ThemeToggleItem />
         </CommandMenu.Group>
       </CommandMenu>
-      <AppLayout>
+      {/* The case record is the whole app: no sidebar, no chat rail. */}
+      {location.pathname === HOME_PATH ? (
         <Outlet />
-      </AppLayout>
+      ) : (
+        <AppLayout>
+          <Outlet />
+        </AppLayout>
+      )}
     </>
   );
 }

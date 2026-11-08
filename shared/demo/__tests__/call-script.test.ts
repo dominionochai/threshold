@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { resources } from "../../data/resources";
-import { outcomeFromStaff, type Turn } from "../../engine/call";
+import { outcomeFromStaff, type Turn } from "../../engine/conversation";
 import { DEMO_CALL } from "../call-script";
 
 const transcript = (): Turn[] =>

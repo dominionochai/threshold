@@ -18,7 +18,8 @@
     "phone": null,
     "sourceUrl": "https://www.nyc.gov/site/dhs/shelter/families/families-with-children-applying.page",
     "verifiedAt": "2026-11-07",
-    "conflictNote": "Open 24 hours, but applications are processed 9 am to 5 pm. Phone differs by source: (718) 503-6400 on 311, 917-521-3900 on the DHS Single Stop page."
+    "note": "Open 24 hours, but applications are processed 9 am to 5 pm.",
+    "conflict": "Phone differs by source: (718) 503-6400 on 311, 917-521-3900 on the DHS Single Stop page."
   },
   {
     "id": "dhs-afic",
@@ -34,7 +35,8 @@
     "phone": null,
     "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
     "verifiedAt": "2026-11-07",
-    "conflictNote": null
+    "note": null,
+    "conflict": null
   },
   {
     "id": "dhs-franklin",
@@ -50,7 +52,8 @@
     "phone": null,
     "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
     "verifiedAt": "2026-11-07",
-    "conflictNote": null
+    "note": null,
+    "conflict": null
   },
   {
     "id": "dhs-help-women",
@@ -66,7 +69,8 @@
     "phone": null,
     "sourceUrl": "https://portal.311.nyc.gov/article/?kanumber=KA-02501",
     "verifiedAt": null,
-    "conflictNote": "Address differs by source: 114 Snediker Avenue (311, Coalition for the Homeless) vs 116 Williams Avenue (DHS FAQ)."
+    "note": null,
+    "conflict": "Address differs by source: 114 Snediker Avenue (311, Coalition for the Homeless) vs 116 Williams Avenue (DHS FAQ)."
   },
   {
     "id": "pots-bronx",
@@ -87,7 +91,8 @@
     "phone": null,
     "sourceUrl": "https://www.coalitionforthehomeless.org/resources/pots-part-solution",
     "verifiedAt": null,
-    "conflictNote": "Hours differ by source: pantry Mon-Sat 9 am-12 pm and soup kitchen daily 12:30-3:30 pm (Coalition for the Homeless); pantry 8:30-11:30 am and kitchen Mon-Sat 12:30-3 pm (Food Helpline); kitchen Wed-Fri only (Plentiful). Call before going."
+    "note": null,
+    "conflict": "Hours differ by source: pantry Mon-Sat 9 am-12 pm and soup kitchen daily 12:30-3:30 pm (Coalition for the Homeless); pantry 8:30-11:30 am and kitchen Mon-Sat 12:30-3 pm (Food Helpline); kitchen Wed-Fri only (Plentiful). Call before going."
   },
   {
     "id": "holy-apostles",
@@ -103,7 +108,8 @@
     "phone": null,
     "sourceUrl": "https://www.coalitionforthehomeless.org/wp-content/uploads/2026/05/Resources-Guide_2026.pdf",
     "verifiedAt": null,
-    "conflictNote": "Weekday meal times differ between Coalition for the Homeless guides: 12-1:30 pm (2024) vs 10:30 am-12 pm (2026)."
+    "note": null,
+    "conflict": "Weekday meal times differ between Coalition for the Homeless guides: 12-1:30 pm (2024) vs 10:30 am-12 pm (2026)."
   },
   {
     "id": "bread-and-life",
@@ -144,7 +150,8 @@
     "phone": null,
     "sourceUrl": "https://www.coalitionforthehomeless.org/wp-content/uploads/2026/05/Resources-Guide_2026.pdf",
     "verifiedAt": null,
-    "conflictNote": "Single source. ID and a shelter residency letter are required."
+    "note": "Single source. ID and a shelter residency letter are required.",
+    "conflict": null
   },
   {
     "id": "lincoln-ed",
@@ -165,6 +172,7 @@
     "phone": null,
     "sourceUrl": "https://www.nychealthandhospitals.org/lincoln/patients-visitors/",
     "verifiedAt": "2026-11-07",
-    "conflictNote": null
+    "note": null,
+    "conflict": null
   }
 ]

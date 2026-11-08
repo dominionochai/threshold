@@ -26,7 +26,10 @@ export const resourceSchema = z
     phone: z.string().nullable(),
     sourceUrl: z.url(),
     verifiedAt: z.iso.date().nullable(),
-    conflictNote: z.string().nullable(),
+    /** Plain context a person should know (hours quirks, what to bring). Not a disagreement between sources. */
+    note: z.string().nullable(),
+    /** Only where sources disagree. Shown as a conflict, never silently resolved. */
+    conflict: z.string().nullable(),
   })
   .refine((r) => r.phone === null || r.verifiedAt !== null, "a phone number needs a verified source");
 
